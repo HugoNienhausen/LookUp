@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { getViewer, OpenSeadragon } from '../lib/seadragon-loader';
+import { PiMapPin } from 'react-icons/pi';
 
 /**
  * Componente para visualizar anotaciones guardadas
@@ -14,22 +15,22 @@ const AnnotationViewer = ({ annotations, showControls = false }) => {
         try {
             const viewer = getViewer();
             if (!viewer || !viewer.world.getItemCount()) return null;
-            
+
             const tiledImage = viewer.world.getItemAt(0);
             const imageSize = tiledImage.getContentSize();
-            
+
             // Des-normalizar (0-1 → píxeles de imagen)
             const imageCoords = new OpenSeadragon.Point(
                 imagePoint.x * imageSize.x,
                 imagePoint.y * imageSize.y
             );
-            
+
             // Convertir a viewport
             const viewportPoint = viewer.viewport.imageToViewportCoordinates(imageCoords);
-            
+
             // Convertir a píxeles del canvas
             const canvasPoint = viewer.viewport.pixelFromPoint(viewportPoint);
-            
+
             return canvasPoint;
         } catch (error) {
             console.error('Error convirtiendo coordenadas:', error);
@@ -43,50 +44,50 @@ const AnnotationViewer = ({ annotations, showControls = false }) => {
             console.log('⚠️ No hay anotaciones para dibujar');
             return;
         }
-        
+
         const canvas = canvasRef.current;
         if (!canvas) return;
-        
+
         const viewer = getViewer();
         if (!viewer || !viewer.world.getItemCount()) {
             console.log('⚠️ Viewer no está listo');
             return;
         }
-        
+
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
         console.log('🎨 Dibujando', annotations.length, 'anotaciones');
-        
+
         // Dibujar cada trazo
         annotations.forEach((stroke, index) => {
             if (!stroke.points || stroke.points.length === 0) {
                 console.warn(`⚠️ Trazo ${index} no tiene puntos`);
                 return;
             }
-            
+
             ctx.globalAlpha = stroke.style?.opacity || 0.8;
             ctx.strokeStyle = stroke.style?.color || '#6ccff6';
             ctx.lineWidth = stroke.style?.size || 12;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
-            
+
             ctx.beginPath();
-            
+
             // Convertir todos los puntos y dibujar
             const canvasPoints = stroke.points.map(p => imageToCanvasCoords(p)).filter(p => p !== null);
-            
+
             if (canvasPoints.length > 0) {
                 ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y);
-                
+
                 for (let i = 1; i < canvasPoints.length; i++) {
                     ctx.lineTo(canvasPoints[i].x, canvasPoints[i].y);
                 }
-                
+
                 ctx.stroke();
             }
         });
-        
+
         console.log('✅ Anotaciones dibujadas');
     };
 
@@ -100,7 +101,7 @@ const AnnotationViewer = ({ annotations, showControls = false }) => {
             if (container) {
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
-                
+
                 // Redibujar después de redimensionar
                 if (viewerReadyRef.current) {
                     drawAnnotations();
@@ -183,7 +184,8 @@ const AnnotationViewer = ({ annotations, showControls = false }) => {
                     zIndex: 11,
                     pointerEvents: 'none'
                 }}>
-                    📍 {annotations.length} {annotations.length === 1 ? 'trazo' : 'trazos'}
+                    <PiMapPin size={14} style={{ display: 'inline', marginRight: '4px' }} />
+                    {annotations.length} {annotations.length === 1 ? 'trazo' : 'trazos'}
                 </div>
             )}
         </>

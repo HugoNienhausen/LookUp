@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useToolbox } from '../context/ToolboxContext';
 import { useDraggable } from '../hooks/useDraggable';
+import { PiPaintBrush, PiEraser, PiArrowsOut } from 'react-icons/pi';
 
 const MinimalToolbox = () => {
     const {
@@ -34,16 +35,16 @@ const MinimalToolbox = () => {
     const { elementRef, draggableStyle, handleMouseDown } = useDraggable('minimal-toolbox', { x: window.innerWidth - 240, y: 20 });
 
     const tools = [
-        { id: 'brush', label: 'Pincel', icon: '🖌️' },
-        { id: 'erase', label: 'Borrar', icon: '🧽' },
-        { id: 'move', label: 'Mover', icon: '✋' }
+        { id: 'brush', label: 'Pincel', icon: PiPaintBrush },
+        { id: 'erase', label: 'Borrar', icon: PiEraser },
+        { id: 'move', label: 'Mover', icon: PiArrowsOut }
     ];
 
     const handleClear = () => {
         if (strokeCount === 0) {
             return; // No hay nada que limpiar
         }
-        
+
         const confirmed = window.confirm(`¿Borrar ${strokeCount} ${strokeCount === 1 ? 'trazo' : 'trazos'}?`);
         if (confirmed && window.clearCanvas) {
             window.clearCanvas();
@@ -168,7 +169,7 @@ const MinimalToolbox = () => {
                                 transition: 'all 0.2s ease'
                             }}
                         >
-                            <span>{tool.icon}</span>
+                            <tool.icon size={16} />
                             <span>{tool.label}</span>
                         </button>
                     ))}

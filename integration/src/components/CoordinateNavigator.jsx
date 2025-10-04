@@ -8,6 +8,7 @@ import {
     imagePxToNormalized,
     panToCoordinate
 } from '../lib/coords';
+import { PiMapPin, PiNavigationArrow } from 'react-icons/pi';
 
 /**
  * Widget para navegar a coordenadas específicas
@@ -212,7 +213,7 @@ const CoordinateNavigator = () => {
                 onMouseLeave={() => setIsHovered(false)}
                 onMouseDown={handleMouseDown}
             >
-                <span style={{ fontSize: '24px' }}>📍</span>
+                <PiMapPin size={24} />
             </div>
         );
     }
@@ -408,7 +409,12 @@ const CoordinateNavigator = () => {
                     transition: 'all 0.2s ease'
                 }}
             >
-                {showInput ? 'Ocultar coordenadas' : '📍 Ir a coordenada'}
+                {showInput ? 'Ocultar coordenadas' : (
+                    <>
+                        <PiNavigationArrow size={14} style={{ marginRight: '6px' }} />
+                        Ir a coordenada
+                    </>
+                )}
             </button>
 
             {/* Inputs de coordenadas */}

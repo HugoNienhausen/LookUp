@@ -9,8 +9,6 @@ import {
 } from '../lib/seadragon-loader';
 import { useDraggable } from '../hooks/useDraggable';
 import {
-    Brush,
-    Eraser,
     ZoomIn,
     ZoomOut,
     RotateCcw,
@@ -23,9 +21,9 @@ import {
     Minus,
     Plus,
     Palette,
-    Layers,
-    Move
+    Layers
 } from 'lucide-react';
+import { PiPaintBrush, PiEraser, PiArrowsOut } from 'react-icons/pi';
 
 /**
  * Toolbox widget flotante
@@ -95,9 +93,9 @@ const Toolbox = ({
     };
 
     const tools = [
-        { id: 'brush', icon: Brush, name: 'Pincel' },
-        { id: 'eraser', icon: Eraser, name: 'Borrar' },
-        { id: 'move', icon: Move, name: 'Mover' }
+        { id: 'brush', icon: PiPaintBrush, name: 'Pincel' },
+        { id: 'eraser', icon: PiEraser, name: 'Borrar' },
+        { id: 'move', icon: PiArrowsOut, name: 'Mover' }
     ];
 
     if (isMinimized) {

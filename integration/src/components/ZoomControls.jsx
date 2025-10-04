@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getViewer, isViewerReady, getZoom } from '../lib/seadragon-loader';
 import { useDraggable } from '../hooks/useDraggable';
+import { PiMagnifyingGlass, PiPlus, PiMinus } from 'react-icons/pi';
 
 const ZoomControls = () => {
     const [currentZoom, setCurrentZoom] = useState(1);
@@ -23,7 +24,7 @@ const ZoomControls = () => {
     }, []);
 
     const handleZoomIn = () => {
-        console.log('🔍 Toolbox: Zoom in');
+        console.log('Zoom in');
         const viewer = getViewer();
         if (viewer) {
             const currentCenter = viewer.viewport.getCenter();
@@ -35,7 +36,7 @@ const ZoomControls = () => {
     };
 
     const handleZoomOut = () => {
-        console.log('🔍 Toolbox: Zoom out');
+        console.log('Zoom out');
         const viewer = getViewer();
         if (viewer) {
             const currentCenter = viewer.viewport.getCenter();
@@ -65,7 +66,7 @@ const ZoomControls = () => {
                 onMouseLeave={() => setIsHovered(false)}
                 onMouseDown={handleMouseDown}
             >
-                <span style={{ fontSize: '24px' }}>🔍</span>
+                <PiMagnifyingGlass size={24} />
             </div>
         );
     }
@@ -171,7 +172,7 @@ const ZoomControls = () => {
                     e.target.style.transform = 'scale(1)';
                 }}
             >
-                +
+                <PiPlus size={20} />
             </button>
 
             {/* Zoom Out */}
@@ -202,7 +203,7 @@ const ZoomControls = () => {
                     e.target.style.transform = 'scale(1)';
                 }}
             >
-                −
+                <PiMinus size={20} />
             </button>
         </div>
     );
