@@ -40,22 +40,22 @@ const SimpleViewer = ({ dziUrl }) => {
       // Obtener información del DZI
       const response = await fetch(dziUrl);
       const dziText = await response.text();
-      
+
       // Parsear XML para encontrar el primer tile
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(dziText, 'text/xml');
       const sizeElement = xmlDoc.querySelector('Size');
       const tileSizeElement = xmlDoc.querySelector('TileSize');
-      
+
       if (sizeElement && tileSizeElement) {
         const width = parseInt(sizeElement.getAttribute('Width'));
         const height = parseInt(sizeElement.getAttribute('Height'));
         const tileSize = parseInt(tileSizeElement.getAttribute('Width'));
-        
+
         // Construir URL del primer tile (zoom level 0, tile 0,0)
         const baseUrl = dziUrl.replace('.dzi', '_files');
         const tileUrl = `${baseUrl}/0/0_0.jpg`;
-        
+
         // Intentar descargar el tile
         const tileResponse = await fetch(tileUrl, { method: 'HEAD' });
         if (tileResponse.ok) {
@@ -83,6 +83,7 @@ const SimpleViewer = ({ dziUrl }) => {
         loadTilesWithAjax: true,
         ajaxWithCredentials: false,
         debugMode: true,
+        showTileBorders: true,
         tileSources: url
       };
 
@@ -150,7 +151,7 @@ const SimpleViewer = ({ dziUrl }) => {
     setStatus('Verificando URL...');
     setIsLoading(true);
     setHasTileErrors(false);
-    
+
     if (viewerRef.current) {
       viewerRef.current.destroy();
       viewerRef.current = null;
@@ -195,7 +196,7 @@ const SimpleViewer = ({ dziUrl }) => {
 
   useEffect(() => {
     retry();
-    
+
     return () => {
       if (viewerRef.current) {
         console.log('Destruyendo SimpleViewer...');
@@ -268,7 +269,7 @@ const SimpleViewer = ({ dziUrl }) => {
           >
             {isLoading ? 'Verificando...' : 'Reintentar'}
           </button>
-          
+
           {!error && currentUrl && (
             <button
               onClick={testTile}

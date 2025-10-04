@@ -1,0 +1,122 @@
+/* Importar tokens desde figmamake */
+@import url('../figmamake/src/index.css');
+
+/* Estilos globales adicionales */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--background);
+    color: var(--foreground);
+    overflow: hidden;
+}
+
+#root {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Utilidades glassmorphism */
+.glass {
+    background: rgba(44, 53, 49, 0.18);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-hover {
+    transition: all 0.18s ease;
+}
+
+.glass-hover:hover {
+    background: rgba(44, 53, 49, 0.92);
+    box-shadow: 0 8px 25px rgba(3, 6, 10, 0.6);
+    transform: translateY(-4px);
+}
+
+/* Canvas overlay styles */
+.canvas-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: auto;
+    z-index: 10;
+    /* Por debajo del toolbox (z-index: 9999) */
+    cursor: crosshair;
+}
+
+.canvas-overlay.tool-move {
+    cursor: move;
+    pointer-events: none;
+}
+
+.canvas-overlay.tool-eraser {
+    cursor: not-allowed;
+}
+
+/* Asegurar que el toolbox esté por encima de todo */
+.toolbox {
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}
+
+/* Widget base styles mejorados */
+.widget-base {
+    z-index: 1000;
+    pointer-events: auto;
+}
+
+/* Estilos para widgets arrastrables */
+.widget-header {
+    cursor: grab !important;
+    user-select: none;
+}
+
+.widget-header:active {
+    cursor: grabbing !important;
+}
+
+.dragging {
+    transform: scale(1.02) !important;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4), 0 0 0 2px var(--primary) !important;
+    transition: none !important;
+}
+
+/* Prevenir selección de texto durante drag */
+.dragging * {
+    user-select: none !important;
+    pointer-events: none !important;
+}
+
+/* Asegurar que widgets arrastrables estén por encima de overlays */
+.widget-base[style*="position: fixed"] {
+    z-index: 10000 !important;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+}

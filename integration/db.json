@@ -1,0 +1,224 @@
+{
+  "users": [
+    {
+      "id": "user_001",
+      "name": "Ana García",
+      "email": "ana@example.com",
+      "password": "demo123",
+      "role": "user",
+      "score": 450,
+      "annotations_count": 3,
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Ana",
+      "reputation": 450
+    },
+    {
+      "id": "user_002",
+      "name": "Carlos Validator",
+      "email": "carlos@example.com",
+      "password": "demo123",
+      "role": "validator",
+      "score": 1250,
+      "annotations_count": 15,
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos",
+      "reputation": 1250
+    },
+    {
+      "id": "user_003",
+      "name": "María Agency",
+      "email": "maria@example.com",
+      "password": "demo123",
+      "role": "agency",
+      "score": 2100,
+      "annotations_count": 0,
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria",
+      "reputation": 2100
+    },
+    {
+      "id": "user_debug",
+      "name": "Debug User",
+      "email": "debug@example.com",
+      "password": "debug123",
+      "role": "debug",
+      "score": 0,
+      "annotations_count": 0,
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Debug",
+      "reputation": 0
+    }
+  ],
+  "challenges": [
+    {
+      "id": "challenge_001",
+      "title": "Cráteres de Marte - Jezero",
+      "description": "Identifica y anota todos los cráteres visibles en la región de Jezero Crater",
+      "images": [
+        {
+          "id": "image_001",
+          "url": "https://via.placeholder.com/4000x3000/8B4513/FFFFFF?text=Mars+Image+1",
+          "width": 4000,
+          "height": 3000,
+          "dziUrl": "https://openseadragon.github.io/example-images/highsmith/highsmith.dzi"
+        },
+        {
+          "id": "image_002",
+          "url": "https://via.placeholder.com/4000x3000/A0522D/FFFFFF?text=Mars+Image+2",
+          "width": 4000,
+          "height": 3000,
+          "dziUrl": "https://lookuphack.s3.eu-north-1.amazonaws.com/fotos/PIA26080_Anaglyph_dz.dzi"
+        },
+        {
+          "id": "image_003",
+          "url": "https://via.placeholder.com/4000x3000/CD853F/FFFFFF?text=Mars+Image+3",
+          "width": 4000,
+          "height": 3000,
+          "dziUrl": "https://lookuphack.s3.eu-north-1.amazonaws.com/fotos/area5_reconDEM_02m_geotiff_dz.dzi"
+        }
+      ],
+      "status": "active",
+      "createdBy": "user_003",
+      "createdAt": "2025-10-01T10:00:00Z"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "annotation_001",
+      "challengeId": "challenge_001",
+      "imageId": "image_001",
+      "userId": "user_001",
+      "strokes": [
+        [
+          {
+            "x": 0.3,
+            "y": 0.4
+          },
+          {
+            "x": 0.31,
+            "y": 0.41
+          },
+          {
+            "x": 0.32,
+            "y": 0.42
+          }
+        ]
+      ],
+      "bbox": [
+        0.3,
+        0.4,
+        0.32,
+        0.42
+      ],
+      "maskDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg...",
+      "status": "validated",
+      "score": 100,
+      "meta": {
+        "tool": "brush",
+        "opacity": 0.8,
+        "brushSize": 12
+      },
+      "createdAt": "2025-10-02T14:30:00Z"
+    },
+    {
+      "id": "annotation_002",
+      "challengeId": "challenge_001",
+      "imageId": "image_001",
+      "userId": "user_002",
+      "strokes": [
+        [
+          {
+            "x": 0.5,
+            "y": 0.5
+          },
+          {
+            "x": 0.51,
+            "y": 0.51
+          }
+        ]
+      ],
+      "bbox": [
+        0.5,
+        0.5,
+        0.51,
+        0.51
+      ],
+      "maskDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg...",
+      "status": "validated",
+      "score": 100,
+      "meta": {
+        "tool": "brush",
+        "opacity": 0.8,
+        "brushSize": 12
+      },
+      "createdAt": "2025-10-03T09:15:00Z"
+    },
+    {
+      "id": "annotation_003",
+      "challengeId": "challenge_001",
+      "imageId": "image_002",
+      "userId": "user_001",
+      "strokes": [
+        [
+          {
+            "x": 0.6,
+            "y": 0.3
+          },
+          {
+            "x": 0.61,
+            "y": 0.31
+          }
+        ]
+      ],
+      "bbox": [
+        0.6,
+        0.3,
+        0.61,
+        0.31
+      ],
+      "maskDataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUg...",
+      "status": "rejected",
+      "score": 0,
+      "meta": {
+        "tool": "brush",
+        "opacity": 0.8,
+        "brushSize": 12
+      },
+      "createdAt": "2025-10-03T11:20:00Z"
+    }
+  ],
+  "validations": [
+    {
+      "id": "validation_001",
+      "annotationId": "annotation_002",
+      "validatorId": "user_002",
+      "decision": "approved",
+      "comment": "Crateres correctamente identificados",
+      "createdAt": "2025-10-03T10:00:00Z"
+    },
+    {
+      "id": "validation_1759571054008",
+      "annotationId": "annotation_001",
+      "validatorId": "user_002",
+      "decision": "approved",
+      "comment": "",
+      "createdAt": "2025-10-04T09:44:14.008Z"
+    }
+  ],
+  "ranking": [
+    {
+      "userId": "user_003",
+      "name": "María Agency",
+      "score": 2100,
+      "rank": 1
+    },
+    {
+      "userId": "user_002",
+      "name": "Carlos Validator",
+      "score": 1250,
+      "rank": 2
+    },
+    {
+      "userId": "user_001",
+      "name": "Ana García",
+      "score": 450,
+      "rank": 3
+    }
+  ]
+}
