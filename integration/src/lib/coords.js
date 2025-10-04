@@ -35,7 +35,6 @@ export function getImageDimensions(viewer) {
             height = size.y;
         }
 
-        console.log('📏 Dimensiones reales de la imagen:', { width, height });
         return { width, height };
     } catch (error) {
         console.error('❌ Error obteniendo dimensiones de la imagen:', error);

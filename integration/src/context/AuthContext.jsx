@@ -37,25 +37,29 @@ export const AuthProvider = ({ children }) => {
     const login = async (email, password) => {
         try {
             const userData = await api.login(email, password);
+            // userData ahora incluye el token JWT
             setUser(userData);
             localStorage.setItem('user', JSON.stringify(userData));
             return { success: true };
         } catch (error) {
-            return { success: false, error: error.message };
+            const errorMessage = error.response?.data?.error || error.message || 'Error al iniciar sesión';
+            return { success: false, error: errorMessage };
         }
     };
 
     /**
      * Registrar nuevo usuario
      */
-    const register = async (name, email, password) => {
+    const register = async (name, email, password, role = 'participant') => {
         try {
-            const userData = await api.register(name, email, password);
+            const userData = await api.register(name, email, password, role);
+            // userData ahora incluye el token JWT
             setUser(userData);
             localStorage.setItem('user', JSON.stringify(userData));
             return { success: true };
         } catch (error) {
-            return { success: false, error: error.message };
+            const errorMessage = error.response?.data?.error || error.message || 'Error al registrarse';
+            return { success: false, error: errorMessage };
         }
     };
 
@@ -76,13 +80,34 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
+    /**
+     * Refrescar datos del usuario desde el backend
+     */
+    const refreshUser = async () => {
+        try {
+            const userData = await api.getMe();
+            const updatedUser = { 
+                ...user, 
+                ...userData,
+                token: user.token // Mantener el token actual
+            };
+            setUser(updatedUser);
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            return updatedUser;
+        } catch (error) {
+            console.error('Error refrescando usuario:', error);
+            return null;
+        }
+    };
+
     const value = {
         user,
         loading,
         login,
         register,
         logout,
-        updateUser
+        updateUser,
+        refreshUser
     };
 
     if (loading) {

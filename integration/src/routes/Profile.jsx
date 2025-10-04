@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../lib/api';
 
@@ -6,7 +7,8 @@ import * as api from '../lib/api';
  * Página de perfil de usuario
  */
 const Profile = () => {
-    const { user } = useAuth();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
     const [annotations, setAnnotations] = useState([]);
     const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -46,11 +48,17 @@ const Profile = () => {
 
     const getRoleBadge = () => {
         const roles = {
+            participant: { label: 'Participante', color: 'var(--muted)' },
             user: { label: 'Usuario', color: 'var(--muted)' },
             validator: { label: 'Validador', color: 'var(--primary)' },
             agency: { label: 'Agencia', color: 'var(--accent)' }
         };
         return roles[user.role] || roles.user;
+    };
+
+    const handleLogout = () => {
+        logout();
+        navigate('/');
     };
 
     if (loading) {
@@ -121,6 +129,34 @@ const Profile = () => {
                         {roleBadge.label}
                     </div>
                 </div>
+
+                <button
+                    onClick={handleLogout}
+                    style={{
+                        padding: '12px 24px',
+                        background: 'var(--destructive)',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: 'var(--destructive-foreground)',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#b91c1c';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'var(--destructive)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                    }}
+                >
+                    🚪 Cerrar Sesión
+                </button>
             </div>
 
             {/* Stats Grid */}
@@ -221,7 +257,7 @@ const Profile = () => {
                                     Challenge: {annotation.challengeId}
                                 </div>
                                 <div style={{ fontSize: '14px', color: 'var(--muted-foreground)' }}>
-                                    {new Date(annotation.createdAt).toLocaleDateString()} • {annotation.strokes?.length || 0} strokes
+                                    {new Date(annotation.createdAt).toLocaleDateString()} • {annotation.annotations?.length || 0} anotaciones
                                 </div>
                             </div>
                             <div>

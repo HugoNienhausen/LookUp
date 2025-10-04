@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../lib/api';
+import SeadragonWrapper from '../components/SeadragonWrapper';
+import AnnotationViewer from '../components/AnnotationViewer';
 
 /**
  * Página de Validador - Cola de validación
@@ -34,13 +36,15 @@ const Validator = () => {
         setValidating(annotationId);
 
         try {
-            await api.validateAnnotation(annotationId, user.id, decision, comment);
+            // El backend extrae validator_id del token JWT automáticamente
+            await api.validateAnnotation(annotationId, null, decision, comment);
             alert(`Anotación ${decision === 'approved' ? 'aprobada' : 'rechazada'} exitosamente`);
             setComment('');
             await loadQueue();
         } catch (error) {
             console.error('Error validando:', error);
-            alert('Error al validar la anotación');
+            const errorMsg = error.response?.data?.error || 'Error al validar la anotación';
+            alert(errorMsg);
         } finally {
             setValidating(null);
         }
@@ -98,19 +102,39 @@ const Validator = () => {
                             }}
                         >
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
-                                {/* Preview */}
+                                {/* Preview con anotaciones */}
                                 <div>
                                     <div style={{
+                                        position: 'relative',
                                         width: '100%',
-                                        height: '200px',
+                                        height: '300px',
                                         background: 'rgba(255, 255, 255, 0.05)',
                                         borderRadius: '8px',
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        fontSize: '48px'
+                                        overflow: 'hidden'
                                     }}>
-                                        🖼️
+                                        {annotation.dziUrl ? (
+                                            <>
+                                                <SeadragonWrapper
+                                                    imageUrl={annotation.dziUrl}
+                                                    showNavigator={false}
+                                                    onReady={() => console.log('Viewer listo para validación')}
+                                                />
+                                                <AnnotationViewer 
+                                                    annotations={annotation.annotations || []} 
+                                                    showControls={true}
+                                                />
+                                            </>
+                                        ) : (
+                                            <div style={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                height: '100%',
+                                                fontSize: '48px'
+                                            }}>
+                                                🖼️
+                                            </div>
+                                        )}
                                     </div>
                                     <div style={{
                                         marginTop: '12px',
@@ -135,15 +159,15 @@ const Validator = () => {
                                         }}>
                                             <div>
                                                 <span style={{ color: 'var(--muted-foreground)' }}>Challenge:</span>{' '}
-                                                <span>{annotation.challengeId}</span>
+                                                <span>{annotation.challengeId || 'N/A'}</span>
                                             </div>
                                             <div>
                                                 <span style={{ color: 'var(--muted-foreground)' }}>Usuario:</span>{' '}
-                                                <span>{annotation.userId}</span>
+                                                <span>{annotation.userName || annotation.userId}</span>
                                             </div>
                                             <div>
-                                                <span style={{ color: 'var(--muted-foreground)' }}>Strokes:</span>{' '}
-                                                <span>{annotation.strokes?.length || 0}</span>
+                                                <span style={{ color: 'var(--muted-foreground)' }}>Anotaciones:</span>{' '}
+                                                <span>{annotation.annotations?.length || 0}</span>
                                             </div>
                                             <div>
                                                 <span style={{ color: 'var(--muted-foreground)' }}>Fecha:</span>{' '}

@@ -28,19 +28,22 @@ const Agency = () => {
                 return;
             }
 
-            const images = validUrls.map((url, index) => ({
-                id: `image_${Date.now()}_${index}`,
+            const images = validUrls.map((url) => ({
                 url: url.trim(),
-                width: 4000,
-                height: 3000,
-                dziUrl: ''
+                dziUrl: url.trim(),
+                metadata: {
+                    width: 4000,
+                    height: 3000
+                }
             }));
 
             const challengeData = {
                 title,
                 description,
                 images,
-                createdBy: user.id
+                rules: 'Anota todas las características visibles',
+                objective: 'Identificación y clasificación de elementos',
+                endDate: null
             };
 
             await api.createChallenge(challengeData);
@@ -54,7 +57,8 @@ const Agency = () => {
 
         } catch (error) {
             console.error('Error creando challenge:', error);
-            alert('Error al crear el challenge');
+            const errorMsg = error.response?.data?.error || 'Error al crear el challenge';
+            alert(errorMsg);
         } finally {
             setCreating(false);
         }

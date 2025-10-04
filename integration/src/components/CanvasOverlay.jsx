@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useToolbox } from '../context/ToolboxContext';
 import { getViewer, OpenSeadragon } from '../lib/seadragon-loader';
 
@@ -9,6 +9,10 @@ const CanvasOverlay = () => {
     const isPanningRef = useRef(false);
     const lastPointRef = useRef(null);
     const lastPanPointRef = useRef(null);
+    
+    // Estado para guardar los trazos
+    const [strokes, setStrokes] = useState([]);
+    const currentStrokeRef = useRef(null);
 
     // Inicializar canvas
     useEffect(() => {
@@ -59,6 +63,35 @@ const CanvasOverlay = () => {
             x: e.clientX - rect.left,
             y: e.clientY - rect.top
         };
+    }, []);
+
+    // Convertir coordenadas del canvas a coordenadas de imagen normalizadas (0-1)
+    const canvasToImageCoords = useCallback((canvasPoint) => {
+        try {
+            const viewer = getViewer();
+            if (!viewer || !viewer.world.getItemCount()) return null;
+            
+            // Convertir a coordenadas del viewport de OpenSeadragon
+            const viewportPoint = viewer.viewport.pointFromPixel(
+                new OpenSeadragon.Point(canvasPoint.x, canvasPoint.y)
+            );
+            
+            // Convertir a coordenadas de la imagen
+            const imagePoint = viewer.viewport.viewportToImageCoordinates(viewportPoint);
+            
+            // Obtener dimensiones de la imagen para normalizar
+            const tiledImage = viewer.world.getItemAt(0);
+            const imageSize = tiledImage.getContentSize();
+            
+            // Normalizar entre 0 y 1
+            return {
+                x: imagePoint.x / imageSize.x,
+                y: imagePoint.y / imageSize.y
+            };
+        } catch (error) {
+            console.error('Error convirtiendo coordenadas:', error);
+            return null;
+        }
     }, []);
 
     // Dibujar punto
@@ -126,6 +159,24 @@ const CanvasOverlay = () => {
                 // Pincel/Borrador: click izquierdo pinta/borra
                 isDrawingRef.current = true;
                 lastPointRef.current = point;
+                
+                // Iniciar un nuevo trazo
+                const imageCoords = canvasToImageCoords(point);
+                if (imageCoords) {
+                    currentStrokeRef.current = {
+                        id: `stroke_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                        type: selectedTool,
+                        points: [imageCoords],
+                        style: {
+                            size: brushSize,
+                            opacity: brushOpacity,
+                            color: '#6ccff6'
+                        },
+                        timestamp: new Date().toISOString()
+                    };
+                    console.log('🎨 Nuevo trazo iniciado:', currentStrokeRef.current.id);
+                }
+                
                 drawPoint(point);
             } else if (selectedTool === 'move') {
                 // Mover: click izquierdo arrastra
@@ -138,7 +189,7 @@ const CanvasOverlay = () => {
             isPanningRef.current = true;
             lastPanPointRef.current = point;
         }
-    }, [selectedTool, getMousePos, drawPoint]);
+    }, [selectedTool, getMousePos, drawPoint, brushSize, brushOpacity, canvasToImageCoords]);
 
     const handleMouseMove = useCallback((e) => {
         const point = getMousePos(e);
@@ -153,12 +204,27 @@ const CanvasOverlay = () => {
         if (isDrawingRef.current && (selectedTool === 'brush' || selectedTool === 'erase')) {
             if (lastPointRef.current) {
                 drawLine(lastPointRef.current, point);
+                
+                // Agregar punto al trazo actual
+                const imageCoords = canvasToImageCoords(point);
+                if (currentStrokeRef.current && imageCoords) {
+                    currentStrokeRef.current.points.push(imageCoords);
+                }
             }
             lastPointRef.current = point;
         }
-    }, [selectedTool, getMousePos, drawLine, handlePan]);
+    }, [selectedTool, getMousePos, drawLine, handlePan, canvasToImageCoords]);
 
-    const handleMouseUp = useCallback((e) => {
+    const handleMouseUp = useCallback(() => {
+        // Guardar el trazo completado
+        if (isDrawingRef.current && currentStrokeRef.current) {
+            if (currentStrokeRef.current.points.length > 0) {
+                setStrokes(prev => [...prev, currentStrokeRef.current]);
+                console.log('✅ Trazo guardado:', currentStrokeRef.current.id, `(${currentStrokeRef.current.points.length} puntos)`);
+            }
+            currentStrokeRef.current = null;
+        }
+        
         isDrawingRef.current = false;
         isPanningRef.current = false;
         lastPointRef.current = null;
@@ -196,15 +262,27 @@ const CanvasOverlay = () => {
         const canvas = canvasRef.current;
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        setStrokes([]);
+        console.log('🧹 Canvas limpiado');
     }, []);
 
-    // Exponer función de limpiar globalmente
+    // Exponer funciones globalmente
     useEffect(() => {
         window.clearCanvas = clearCanvas;
+        window.getAnnotationsData = () => strokes;
+        window.__annotationStrokes = strokes;
+        
         return () => {
             delete window.clearCanvas;
+            delete window.getAnnotationsData;
+            delete window.__annotationStrokes;
         };
-    }, [clearCanvas]);
+    }, [clearCanvas, strokes]);
+
+    // Log de trazos actuales
+    useEffect(() => {
+        console.log('📊 Trazos totales:', strokes.length);
+    }, [strokes]);
 
     // Establecer cursor según herramienta
     useEffect(() => {

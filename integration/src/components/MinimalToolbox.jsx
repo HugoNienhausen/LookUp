@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToolbox } from '../context/ToolboxContext';
 import { useDraggable } from '../hooks/useDraggable';
 
@@ -14,6 +14,21 @@ const MinimalToolbox = () => {
 
     const [isMinimized, setIsMinimized] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const [strokeCount, setStrokeCount] = useState(0);
+
+    // Actualizar contador de trazos
+    useEffect(() => {
+        const updateStrokeCount = () => {
+            const strokes = window.__annotationStrokes || [];
+            setStrokeCount(strokes.length);
+        };
+
+        // Actualizar cada segundo
+        const interval = setInterval(updateStrokeCount, 500);
+        updateStrokeCount(); // Inicial
+
+        return () => clearInterval(interval);
+    }, []);
 
     // Hook para hacer el toolbox arrastrable
     const { elementRef, draggableStyle, handleMouseDown } = useDraggable('minimal-toolbox', { x: window.innerWidth - 240, y: 20 });
@@ -25,8 +40,14 @@ const MinimalToolbox = () => {
     ];
 
     const handleClear = () => {
-        if (window.clearCanvas) {
+        if (strokeCount === 0) {
+            return; // No hay nada que limpiar
+        }
+        
+        const confirmed = window.confirm(`¿Borrar ${strokeCount} ${strokeCount === 1 ? 'trazo' : 'trazos'}?`);
+        if (confirmed && window.clearCanvas) {
             window.clearCanvas();
+            setStrokeCount(0);
         }
     };
 
@@ -92,6 +113,18 @@ const MinimalToolbox = () => {
                         fontSize: '16px',
                         fontWeight: '600'
                     }}>Herramientas</h3>
+                    {strokeCount > 0 && (
+                        <span style={{
+                            background: '#6ccff6',
+                            color: '#000',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: 'bold'
+                        }}>
+                            {strokeCount}
+                        </span>
+                    )}
                 </div>
                 <button
                     onClick={(e) => {

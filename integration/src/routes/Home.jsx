@@ -99,7 +99,7 @@ const Home = () => {
                                     marginBottom: '8px',
                                     color: 'var(--primary)'
                                 }}>
-                                    {challenge.title}
+                                    {challenge.title || challenge.name}
                                 </h3>
                                 <p style={{
                                     fontSize: '14px',
@@ -202,7 +202,7 @@ const Home = () => {
                                         {user.annotations_count || 0}
                                     </div>
                                 </div>
-                                {user.role === 'user' && user.annotations_count < 5 && (
+                                {user.role === 'participant' && user.annotations_count < 20 && (
                                     <div style={{
                                         marginTop: '8px',
                                         padding: '12px',
@@ -211,7 +211,7 @@ const Home = () => {
                                         fontSize: '12px',
                                         color: 'var(--primary)'
                                     }}>
-                                        🎯 {5 - user.annotations_count} anotaciones más para ser Validador
+                                        🎯 {20 - user.annotations_count} anotaciones más para ser Validador
                                     </div>
                                 )}
                             </div>

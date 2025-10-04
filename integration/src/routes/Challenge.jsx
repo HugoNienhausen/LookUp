@@ -93,26 +93,41 @@ const Challenge = () => {
         try {
             const currentImage = challenge.images[currentImageIndex];
 
-            // Obtener datos del canvas
-            const canvas = document.querySelector('canvas');
-            if (!canvas) {
-                alert('No hay canvas para guardar');
+            // Obtener anotaciones reales del canvas
+            const annotations = window.getAnnotationsData ? window.getAnnotationsData() : [];
+            
+            if (!annotations || annotations.length === 0) {
+                alert('⚠️ No has dibujado ninguna anotación. Usa el pincel para marcar las áreas de interés.');
+                setSaving(false);
                 return;
             }
 
+            console.log('📤 Enviando anotaciones:', {
+                cantidad: annotations.length,
+                puntosTotales: annotations.reduce((sum, s) => sum + s.points.length, 0)
+            });
+
             const annotationData = {
-                challengeId: id,
                 imageId: currentImage.id,
-                userId: user.id,
-                canvasData: canvas.toDataURL(),
-                meta: {
-                    timestamp: new Date().toISOString()
+                annotations: annotations,
+                metadata: {
+                    timestamp: new Date().toISOString(),
+                    imageIndex: currentImageIndex,
+                    challengeId: id,
+                    imageUrl: currentImage.dziUrl || currentImage.url,
+                    totalStrokes: annotations.length,
+                    totalPoints: annotations.reduce((sum, s) => sum + s.points.length, 0)
                 }
             };
 
             const result = await api.createAnnotation(annotationData);
 
-            // Actualizar usuario local
+            // Limpiar canvas después de guardar exitosamente
+            if (window.clearCanvas) {
+                window.clearCanvas();
+            }
+
+            // Actualizar usuario local si hubo promoción
             if (result.userUpdates) {
                 updateUser(result.userUpdates);
 
@@ -123,10 +138,11 @@ const Challenge = () => {
                 }
             }
 
-            alert('Anotación guardada correctamente');
+            alert(`✅ Anotación guardada correctamente\n${annotations.length} trazos guardados`);
         } catch (error) {
             console.error('Error guardando anotación:', error);
-            alert('Error al guardar la anotación');
+            const errorMsg = error.response?.data?.error || 'Error al guardar la anotación';
+            alert(errorMsg);
         } finally {
             setSaving(false);
         }
@@ -204,7 +220,7 @@ const Challenge = () => {
                     boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3)'
                 }}>
                     <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
-                        {challenge.title}
+                        {challenge.title || challenge.name}
                     </div>
                     <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>
                         Imagen {currentImageIndex + 1} de {challenge.images.length}

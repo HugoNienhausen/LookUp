@@ -10,6 +10,7 @@ const Register = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    const [role, setRole] = useState('participant');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { register } = useAuth();
@@ -31,7 +32,7 @@ const Register = () => {
 
         setLoading(true);
 
-        const result = await register(name, email, password);
+        const result = await register(name, email, password, role);
 
         if (result.success) {
             navigate('/');
@@ -129,6 +130,49 @@ const Register = () => {
                                 fontSize: '14px'
                             }}
                         />
+                    </div>
+
+                    <div>
+                        <label style={{
+                            display: 'block',
+                            fontSize: '14px',
+                            color: 'white',
+                            marginBottom: '8px',
+                            fontWeight: '500'
+                        }}>
+                            Tipo de cuenta
+                        </label>
+                        <select
+                            value={role}
+                            onChange={(e) => setRole(e.target.value)}
+                            required
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                background: 'rgba(255, 255, 255, 0.05)',
+                                border: '1px solid var(--border)',
+                                borderRadius: '8px',
+                                color: 'white',
+                                fontSize: '14px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <option value="participant" style={{ background: '#2C3531', color: 'white' }}>
+                                🙋 Participante - Anotar imágenes
+                            </option>
+                            <option value="agency" style={{ background: '#2C3531', color: 'white' }}>
+                                🏢 Agencia - Crear challenges
+                            </option>
+                        </select>
+                        <p style={{
+                            fontSize: '12px',
+                            color: 'var(--muted-foreground)',
+                            marginTop: '6px',
+                            fontStyle: 'italic'
+                        }}>
+                            {role === 'participant' && '📝 Podrás anotar imágenes y ganar puntos. Con 20 anotaciones serás promovido automáticamente a Validador.'}
+                            {role === 'agency' && '🚀 Podrás crear nuevos challenges para la comunidad y validar anotaciones.'}
+                        </p>
                     </div>
 
                     <div>
