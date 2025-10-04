@@ -8,6 +8,24 @@ import {
     isViewerReady
 } from '../lib/seadragon-loader';
 import { useDraggable } from '../hooks/useDraggable';
+import {
+    Brush,
+    Eraser,
+    ZoomIn,
+    ZoomOut,
+    RotateCcw,
+    RotateCw,
+    Save,
+    Download,
+    Settings,
+    Eye,
+    EyeOff,
+    Minus,
+    Plus,
+    Palette,
+    Layers,
+    Move
+} from 'lucide-react';
 
 /**
  * Toolbox widget flotante
@@ -16,12 +34,15 @@ import { useDraggable } from '../hooks/useDraggable';
 const Toolbox = ({
     selectedTool,
     onToolSelect,
+    brushSize,
+    brushOpacity,
+    onBrushSizeChange,
+    onBrushOpacityChange,
     onSave,
     onUndo,
     onRedo,
     canUndo,
-    canRedo,
-    annotorious
+    canRedo
 }) => {
     const [isHovered, setIsHovered] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
@@ -50,80 +71,19 @@ const Toolbox = ({
     // Handlers mejorados con logging
     const handleToolSelect = (toolId) => {
         console.log('🛠️ Toolbox: Seleccionando herramienta:', toolId);
-
-        const viewer = getViewer();
-
-        // Cambiar herramienta en Annotorious y controlar pan de OpenSeadragon
-        if (annotorious && viewer) {
-            switch (toolId) {
-                case 'select':
-                    // Modo selección: permitir pan de OpenSeadragon
-                    annotorious.setDrawingTool(null);
-                    viewer.setMouseNavEnabled(true);
-                    viewer.outerTracker.setTracking(true);
-                    console.log('✅ Modo selección activado - Pan habilitado');
-                    break;
-                case 'rect':
-                    // Modo rectángulo: deshabilitar pan durante el dibujo
-                    annotorious.setDrawingTool('rect');
-                    viewer.setMouseNavEnabled(false);
-                    viewer.outerTracker.setTracking(false);
-                    console.log('✅ Modo rectángulo activado - Pan deshabilitado');
-                    break;
-                case 'polygon':
-                    // Modo polígono: deshabilitar pan durante el dibujo
-                    annotorious.setDrawingTool('polygon');
-                    viewer.setMouseNavEnabled(false);
-                    viewer.outerTracker.setTracking(false);
-                    console.log('✅ Modo polígono activado - Pan deshabilitado');
-                    break;
-                case 'point':
-                    // Modo punto: deshabilitar pan durante el dibujo
-                    annotorious.setDrawingTool('point');
-                    viewer.setMouseNavEnabled(false);
-                    viewer.outerTracker.setTracking(false);
-                    console.log('✅ Modo punto activado - Pan deshabilitado');
-                    break;
-                default:
-                    annotorious.setDrawingTool(null);
-                    viewer.setMouseNavEnabled(true);
-                    viewer.outerTracker.setTracking(true);
-            }
-        }
-
         onToolSelect(toolId);
     };
 
     const handleZoomIn = () => {
         console.log('🔍 Toolbox: Zoom in');
-        const viewer = getViewer();
-        if (viewer) {
-            const currentZoom = viewer.viewport.getZoom();
-            const currentCenter = viewer.viewport.getCenter();
-            viewer.viewport.zoomBy(1.2);
-            setTimeout(() => {
-                setCurrentZoom(viewer.viewport.getZoom());
-            }, 100);
-        } else {
-            zoomIn();
-            setTimeout(() => setCurrentZoom(getZoom()), 100);
-        }
+        zoomIn();
+        setTimeout(() => setCurrentZoom(getZoom()), 100);
     };
 
     const handleZoomOut = () => {
         console.log('🔍 Toolbox: Zoom out');
-        const viewer = getViewer();
-        if (viewer) {
-            const currentZoom = viewer.viewport.getZoom();
-            const currentCenter = viewer.viewport.getCenter();
-            viewer.viewport.zoomBy(0.8);
-            setTimeout(() => {
-                setCurrentZoom(viewer.viewport.getZoom());
-            }, 100);
-        } else {
-            zoomOut();
-            setTimeout(() => setCurrentZoom(getZoom()), 100);
-        }
+        zoomOut();
+        setTimeout(() => setCurrentZoom(getZoom()), 100);
     };
 
     const handleGoToCoordinate = (lat, lon) => {
@@ -135,10 +95,9 @@ const Toolbox = ({
     };
 
     const tools = [
-        { id: 'select', icon: '👆', name: 'Seleccionar' },
-        { id: 'rect', icon: '⬜', name: 'Rectángulo' },
-        { id: 'polygon', icon: '🔷', name: 'Polígono' },
-        { id: 'point', icon: '📍', name: 'Punto' }
+        { id: 'brush', icon: Brush, name: 'Pincel' },
+        { id: 'eraser', icon: Eraser, name: 'Borrar' },
+        { id: 'move', icon: Move, name: 'Mover' }
     ];
 
     if (isMinimized) {
@@ -267,51 +226,89 @@ const Toolbox = ({
             {activeTab === 'tools' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {/* Tools grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                        {tools.map(tool => (
-                            <button
-                                key={tool.id}
-                                onClick={() => handleToolSelect(tool.id)}
-                                style={{
-                                    padding: '16px 8px',
-                                    background: selectedTool === tool.id
-                                        ? 'var(--primary)'
-                                        : 'rgba(255, 255, 255, 0.1)',
-                                    border: selectedTool === tool.id
-                                        ? '2px solid var(--primary)'
-                                        : '1px solid var(--border)',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    color: selectedTool === tool.id
-                                        ? 'var(--primary-foreground)'
-                                        : 'white',
-                                    fontSize: '24px'
-                                }}
-                            >
-                                <span>{tool.icon}</span>
-                                <span style={{ fontSize: '10px' }}>{tool.name}</span>
-                            </button>
-                        ))}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                        {tools.map(tool => {
+                            const IconComponent = tool.icon;
+                            return (
+                                <button
+                                    key={tool.id}
+                                    onClick={() => handleToolSelect(tool.id)}
+                                    style={{
+                                        padding: '16px 8px',
+                                        background: selectedTool === tool.id
+                                            ? 'var(--primary)'
+                                            : 'rgba(255, 255, 255, 0.1)',
+                                        border: selectedTool === tool.id
+                                            ? '2px solid var(--primary)'
+                                            : '1px solid var(--border)',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        gap: '4px',
+                                        color: selectedTool === tool.id
+                                            ? 'var(--primary-foreground)'
+                                            : 'white',
+                                        fontSize: '24px'
+                                    }}
+                                >
+                                    <IconComponent size={20} />
+                                    <span style={{ fontSize: '10px' }}>{tool.name}</span>
+                                </button>
+                            );
+                        })}
                     </div>
 
-                    {/* Tool info */}
-                    <div style={{
-                        padding: '12px',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        borderRadius: '8px',
-                        fontSize: '12px',
-                        color: 'var(--muted-foreground)',
-                        textAlign: 'center'
-                    }}>
-                        {selectedTool === 'select' && 'Selecciona y edita anotaciones existentes'}
-                        {selectedTool === 'rect' && 'Dibuja rectángulos arrastrando el mouse'}
-                        {selectedTool === 'polygon' && 'Dibuja polígonos haciendo clic en los vértices'}
-                        {selectedTool === 'point' && 'Marca puntos específicos en la imagen'}
-                    </div>
+                    {/* Brush controls */}
+                    {selectedTool === 'brush' && (
+                        <div style={{
+                            padding: '12px',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            borderRadius: '8px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '12px'
+                        }}>
+                            <div>
+                                <label style={{
+                                    fontSize: '12px',
+                                    color: 'var(--muted-foreground)',
+                                    display: 'block',
+                                    marginBottom: '4px'
+                                }}>
+                                    Tamaño: {brushSize}px
+                                </label>
+                                <input
+                                    type="range"
+                                    min="1"
+                                    max="50"
+                                    value={brushSize}
+                                    onChange={(e) => onBrushSizeChange(Number(e.target.value))}
+                                    style={{ width: '100%' }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{
+                                    fontSize: '12px',
+                                    color: 'var(--muted-foreground)',
+                                    display: 'block',
+                                    marginBottom: '4px'
+                                }}>
+                                    Opacidad: {Math.round(brushOpacity * 100)}%
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0.1"
+                                    max="1"
+                                    step="0.1"
+                                    value={brushOpacity}
+                                    onChange={(e) => onBrushOpacityChange(Number(e.target.value))}
+                                    style={{ width: '100%' }}
+                                />
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -338,10 +335,13 @@ const Toolbox = ({
                                     borderRadius: '6px',
                                     color: 'white',
                                     cursor: 'pointer',
-                                    fontSize: '18px'
+                                    fontSize: '18px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}
                             >
-                                −
+                                <ZoomOut size={16} />
                             </button>
                             <button
                                 onClick={handleZoomIn}
@@ -353,10 +353,13 @@ const Toolbox = ({
                                     borderRadius: '6px',
                                     color: 'white',
                                     cursor: 'pointer',
-                                    fontSize: '18px'
+                                    fontSize: '18px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
                                 }}
                             >
-                                +
+                                <ZoomIn size={16} />
                             </button>
                         </div>
                     </div>
@@ -383,10 +386,15 @@ const Toolbox = ({
                                     borderRadius: '6px',
                                     color: canUndo ? 'white' : 'var(--muted-foreground)',
                                     cursor: canUndo ? 'pointer' : 'not-allowed',
-                                    fontSize: '14px'
+                                    fontSize: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '4px'
                                 }}
                             >
-                                ↶ Deshacer
+                                <RotateCcw size={14} />
+                                Deshacer
                             </button>
                             <button
                                 onClick={onRedo}
@@ -399,10 +407,15 @@ const Toolbox = ({
                                     borderRadius: '6px',
                                     color: canRedo ? 'white' : 'var(--muted-foreground)',
                                     cursor: canRedo ? 'pointer' : 'not-allowed',
-                                    fontSize: '14px'
+                                    fontSize: '14px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '4px'
                                 }}
                             >
-                                ↷ Rehacer
+                                <RotateCw size={14} />
+                                Rehacer
                             </button>
                         </div>
                     </div>
@@ -420,10 +433,15 @@ const Toolbox = ({
                             cursor: 'pointer',
                             fontSize: '14px',
                             fontWeight: '600',
-                            marginTop: '8px'
+                            marginTop: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
                         }}
                     >
-                        💾 Guardar Anotación
+                        <Save size={16} />
+                        Guardar Anotación
                     </button>
                 </div>
             )}

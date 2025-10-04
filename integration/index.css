@@ -1,7 +1,67 @@
-/* Importar tokens desde figmamake */
-@import url('../figmamake/src/index.css');
+/* Animación de loading */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
 
-/* Estilos globales adicionales */
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Variables CSS del tema */
+:root {
+    --font-size: 16px;
+    --background: #0d1b2a;
+    --foreground: #fff;
+    --card: #2c3531;
+    --card-foreground: #fff;
+    --popover: #2c3531;
+    --popover-foreground: #fff;
+    --primary: #6ccff6;
+    --primary-foreground: #0d1b2a;
+    --secondary: #2c3531;
+    --secondary-foreground: #fff;
+    --muted: #2c3531;
+    --muted-foreground: #cbd5d1;
+    --accent: #ffd166;
+    --accent-foreground: #0d1b2a;
+    --destructive: #d4183d;
+    --destructive-foreground: #fff;
+    --border: #ffffff1a;
+    --input: transparent;
+    --input-background: #2c3531;
+    --switch-background: #2c3531;
+    --font-weight-medium: 500;
+    --font-weight-normal: 400;
+    --ring: #6ccff6;
+    --chart-1: #6ccff6;
+    --chart-2: #ffd166;
+    --chart-3: #2c3531;
+    --chart-4: #cbd5d1;
+    --chart-5: #fff;
+    --radius: .625rem;
+    --sidebar: #2c3531;
+    --sidebar-foreground: #fff;
+    --sidebar-primary: #6ccff6;
+    --sidebar-primary-foreground: #0d1b2a;
+    --sidebar-accent: #ffd166;
+    --sidebar-accent-foreground: #0d1b2a;
+    --sidebar-border: #ffffff1a;
+    --sidebar-ring: #6ccff6;
+    --widget-bg-hidden: #2c35311a;
+    --widget-bg-idle: #2c35312e;
+    --widget-bg-hover: #2c3531eb;
+    --widget-bg-active: #2c3531;
+    --widget-bg-disabled: #2c353114;
+    --widget-border: #ffffff0f;
+    --widget-border-active: #6ccff6;
+    --widget-shadow: 0 6px 20px #03060a73;
+    --widget-shadow-hover: 0 8px 25px #03060a99;
+    --widget-backdrop-blur: blur(6px);
+}
+
+/* Estilos globales */
 * {
     margin: 0;
     padding: 0;
@@ -50,7 +110,6 @@ body {
     left: 0;
     pointer-events: auto;
     z-index: 10;
-    /* Por debajo del toolbox (z-index: 9999) */
     cursor: crosshair;
 }
 
@@ -100,6 +159,42 @@ body {
 /* Asegurar que widgets arrastrables estén por encima de overlays */
 .widget-base[style*="position: fixed"] {
     z-index: 10000 !important;
+}
+
+/* Estilos para botones del topbar */
+.topbar-button {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.topbar-button:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Mejoras para el minimapa */
+.openseadragon-navigator {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+.openseadragon-navigator .openseadragon-navigator-overlay {
+    border: 2px solid #6ccff6 !important;
+    background: rgba(108, 207, 246, 0.2) !important;
+}
+
+/* Estilos para coordenadas en tiempo real */
+.coordinate-display {
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    letter-spacing: 0.5px;
+}
+
+/* Mejoras de accesibilidad */
+.topbar-button:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.widget-base:focus-within {
+    box-shadow: 0 0 0 2px var(--primary);
 }
 
 /* Scrollbar personalizado */

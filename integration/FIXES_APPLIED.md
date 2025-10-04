@@ -13,7 +13,7 @@
 - ✅ **Navigator restaurado** - Integrado en `SeadragonWrapper.jsx`
 - ✅ **Posicionamiento correcto** - Bottom-right con glassmorphism
 - ✅ **Fallback del navigator** - Si la API nativa no está disponible
-- ✅ **Estilos consistentes** - Usando tokens de figmamake
+- ✅ **Estilos consistentes** - Usando variables CSS integradas
 
 ### 3. **Toolbox roto (botones/controles)**
 - ✅ **Event binding mejorado** - Handlers con logging detallado

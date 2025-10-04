@@ -1,15 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { initSeadragon, destroyViewer, isViewerReady } from '../lib/seadragon-loader';
-import Annotorious from '@recogito/annotorious-openseadragon';
-import '@recogito/annotorious-openseadragon/dist/annotorious.min.css';
+import Minimap from './Minimap';
 
 /**
  * Wrapper del viewer OpenSeadragon usando el nuevo loader encapsulado
  * Inicializa el viewer y maneja fallbacks
  */
-const SeadragonWrapper = ({ imageUrl, onReady, showNavigator = true, onAnnotoriousReady }) => {
+const SeadragonWrapper = ({ imageUrl, onReady, showNavigator = true }) => {
     const containerRef = useRef(null);
-    const annotoriousRef = useRef(null);
+    const navigatorRef = useRef(null);
     const [isReady, setIsReady] = useState(false);
     const [hasError, setHasError] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
@@ -62,62 +61,6 @@ const SeadragonWrapper = ({ imageUrl, onReady, showNavigator = true, onAnnotorio
                         // Limpiar timeout
                         if (timeout) {
                             clearTimeout(timeout);
-                        }
-
-                        // Inicializar Annotorious después de que la imagen esté abierta
-                        if (!annotoriousRef.current) {
-                            try {
-                                console.log('🎨 Inicializando Annotorious...');
-
-                                // Guardar el viewport actual antes de inicializar Annotorious
-                                const currentZoom = viewer.viewport.getZoom();
-                                const currentCenter = viewer.viewport.getCenter();
-
-                                const anno = Annotorious(viewer, {
-                                    allowEmpty: true,
-                                    widgets: [],
-                                    disableEditor: false,
-                                    readOnly: false
-                                });
-
-                                annotoriousRef.current = anno;
-
-                                // Restaurar el viewport después de inicializar Annotorious
-                                setTimeout(() => {
-                                    viewer.viewport.zoomTo(currentZoom, null, true);
-                                    viewer.viewport.panTo(currentCenter, true);
-                                }, 10);
-
-                                // Configurar eventos de Annotorious
-                                anno.on('createAnnotation', (annotation) => {
-                                    console.log('📝 Anotación creada:', annotation);
-                                    // Restaurar viewport después de crear anotación
-                                    const zoom = viewer.viewport.getZoom();
-                                    const center = viewer.viewport.getCenter();
-                                    viewer.viewport.zoomTo(zoom, null, true);
-                                    viewer.viewport.panTo(center, true);
-                                });
-
-                                anno.on('updateAnnotation', (annotation) => {
-                                    console.log('✏️ Anotación actualizada:', annotation);
-                                });
-
-                                anno.on('deleteAnnotation', (annotation) => {
-                                    console.log('🗑️ Anotación eliminada:', annotation);
-                                });
-
-                                // Habilitar navegación por defecto
-                                viewer.setMouseNavEnabled(true);
-                                viewer.outerTracker.setTracking(true);
-
-                                if (onAnnotoriousReady) {
-                                    onAnnotoriousReady(anno);
-                                }
-
-                                console.log('✅ Annotorious inicializado correctamente');
-                            } catch (error) {
-                                console.error('❌ Error inicializando Annotorious:', error);
-                            }
                         }
 
                         if (onReady) onReady(viewer);
@@ -174,39 +117,9 @@ const SeadragonWrapper = ({ imageUrl, onReady, showNavigator = true, onAnnotorio
             if (timeout) {
                 clearTimeout(timeout);
             }
-
-            // Limpiar Annotorious
-            if (annotoriousRef.current) {
-                try {
-                    annotoriousRef.current.destroy();
-                    annotoriousRef.current = null;
-                    console.log('🧹 Annotorious limpiado');
-                } catch (error) {
-                    console.error('❌ Error limpiando Annotorious:', error);
-                }
-            }
-
             destroyViewer();
         };
     }, [imageUrl, onReady, showNavigator]);
-
-    // Exponer la instancia de Annotorious
-    const getAnnotorious = () => {
-        return annotoriousRef.current;
-    };
-
-    // Exponer función para cambiar herramienta
-    const setDrawingTool = (tool) => {
-        if (annotoriousRef.current) {
-            annotoriousRef.current.setDrawingTool(tool);
-        }
-    };
-
-    // Exponer funciones útiles
-    React.useImperativeHandle(React.forwardRef(() => null), () => ({
-        getAnnotorious,
-        setDrawingTool
-    }));
 
     return (
         <div style={{
@@ -225,25 +138,8 @@ const SeadragonWrapper = ({ imageUrl, onReady, showNavigator = true, onAnnotorio
                 }}
             />
 
-            {/* Navigator/Minimapa */}
-            {showNavigator && (
-                <div
-                    id={`${containerRef.current?.id || 'seadragon'}-navigator`}
-                    style={{
-                        position: 'absolute',
-                        bottom: '20px',
-                        right: '20px',
-                        width: '200px',
-                        height: '150px',
-                        background: 'rgba(44, 53, 49, 0.9)',
-                        backdropFilter: 'blur(6px)',
-                        border: '1px solid var(--border)',
-                        borderRadius: '8px',
-                        zIndex: 100,
-                        overflow: 'hidden'
-                    }}
-                />
-            )}
+            {/* Minimapa personalizado */}
+            {showNavigator && isReady && <Minimap />}
 
             {/* Loading state */}
             {isLoading && !hasError && (
@@ -345,13 +241,6 @@ const SeadragonWrapper = ({ imageUrl, onReady, showNavigator = true, onAnnotorio
                 </div>
             )}
 
-            {/* CSS para animación de loading */}
-            <style jsx>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
         </div>
     );
 };

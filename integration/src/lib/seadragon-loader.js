@@ -1,6 +1,6 @@
 /**
  * Seadragon Loader - Encapsulación completa de OpenSeadragon
- * Inicializa el viewer y expone API pública para Toolbox y Annotorious
+ * Inicializa el viewer y expone API pública para Toolbox y CanvasOverlay
  */
 
 import OpenSeadragon from 'openseadragon';
@@ -80,10 +80,8 @@ export async function initSeadragon({
     // Configurar event handlers
     setupEventHandlers(viewer);
     
-    // Crear navigator si se solicita
-    if (showNavigator) {
-      await createNavigator(viewer, navigatorId);
-    }
+    // Nota: El navigator se maneja ahora con el componente Minimap.jsx
+    // No se crea el navigator nativo de OpenSeadragon
 
     // Exponer globalmente para compatibilidad
     window.viewer = viewer;
@@ -112,13 +110,18 @@ function setupEventHandlers(viewer) {
       imageWidth = tiledImage.source.dimensions.x;
       imageHeight = tiledImage.source.dimensions.y;
       console.log(`📏 Dimensiones: ${imageWidth}x${imageHeight}`);
-      console.log('🔗 TileSource info:', {
-        url: tiledImage.source.url,
-        type: tiledImage.source.type,
-        maxLevel: tiledImage.getMaxLevel(),
-        tileSize: tiledImage.getTileSize(),
-        contentSize: tiledImage.getContentSize()
-      });
+      
+      // Log solo propiedades que sabemos que existen
+      try {
+        const contentSize = tiledImage.getContentSize();
+        console.log('🔗 TileSource info:', {
+          url: tiledImage.source.url || 'N/A',
+          type: tiledImage.source.type || 'N/A',
+          contentSize: contentSize ? `${contentSize.x}x${contentSize.y}` : 'N/A'
+        });
+      } catch (e) {
+        console.log('ℹ️ Info adicional del tile no disponible');
+      }
       
     }
     notifyViewportChange();
@@ -206,8 +209,18 @@ function createNavigatorInstance(viewer, navElement) {
       element: navElement,
       maintainSizeRatio: true,
       sizeRatio: 0.25,
-      position: 'BOTTOM_RIGHT'
+      position: 'BOTTOM_LEFT',
+      // Configuración mejorada para mejor visualización
+      showNavigator: true,
+      navigatorBorderColor: '#6ccff6',
+      navigatorBorderWidth: 2,
+      navigatorOpacity: 0.8,
+      navigatorBackground: 'rgba(0,0,0,0.3)',
+      navigatorDisplayMode: 'always'
     });
+    
+    // Configurar eventos para sincronización
+    setupNavigatorEvents(viewer, navigator);
 
     console.log('✅ Navigator creado correctamente');
     return navigator;
@@ -215,6 +228,58 @@ function createNavigatorInstance(viewer, navElement) {
   } catch (error) {
     console.warn('⚠️ Navigator nativo no disponible, creando fallback');
     return createNavigatorFallback(viewer, navElement);
+  }
+}
+
+/**
+ * Configurar eventos del navigator para sincronización
+ */
+function setupNavigatorEvents(viewer, navigator) {
+  // Actualizar navigator cuando cambie el viewport
+  viewer.addHandler('viewport-change', () => {
+    if (navigator && navigator.update) {
+      navigator.update();
+    }
+  });
+  
+  // Actualizar navigator cuando se abra una nueva imagen
+  viewer.addHandler('open', () => {
+    if (navigator && navigator.update) {
+      setTimeout(() => navigator.update(), 100);
+    }
+  });
+  
+  // Actualizar navigator cuando cambie el tamaño
+  viewer.addHandler('resize', () => {
+    if (navigator && navigator.update) {
+      navigator.update();
+    }
+  });
+  
+  // Permitir navegación haciendo click en el navigator
+  if (navigator && navigator.element) {
+    navigator.element.addEventListener('click', (event) => {
+      handleNavigatorClick(viewer, navigator, event);
+    });
+  }
+}
+
+/**
+ * Manejar clicks en el navigator para navegación
+ */
+function handleNavigatorClick(viewer, navigator, event) {
+  try {
+    const rect = navigator.element.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+    
+    // Convertir coordenadas del navigator a coordenadas de imagen
+    const imagePoint = new OpenSeadragon.Point(x, y);
+    viewer.viewport.panTo(imagePoint, true);
+    
+    console.log('📍 Navegando a coordenadas del navigator:', { x, y });
+  } catch (error) {
+    console.error('Error manejando click del navigator:', error);
   }
 }
 
@@ -233,11 +298,77 @@ function createNavigatorFallback(viewer, navElement) {
     color: white;
     font-size: 12px;
     border-radius: 8px;
+    position: relative;
+    overflow: hidden;
   `;
-  fallbackDiv.textContent = 'Minimapa';
+  
+  // Crear canvas para mostrar la imagen en miniatura
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = `
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  `;
+  
+  // Crear overlay para mostrar el viewport
+  const viewportOverlay = document.createElement('div');
+  viewportOverlay.style.cssText = `
+    position: absolute;
+    border: 2px solid #6ccff6;
+    background: rgba(108, 207, 246, 0.2);
+    pointer-events: none;
+    transition: all 0.2s ease;
+  `;
+  
+  fallbackDiv.appendChild(canvas);
+  fallbackDiv.appendChild(viewportOverlay);
   navElement.appendChild(fallbackDiv);
   
-  return { element: fallbackDiv };
+  // Función para actualizar el viewport overlay
+  const updateViewport = () => {
+    if (!viewer || !viewer.world.getItemAt(0)) return;
+    
+    try {
+      const viewport = viewer.viewport;
+      const bounds = viewport.getBounds();
+      const containerSize = viewport.getContainerSize();
+      
+      // Calcular posición y tamaño del viewport en el minimapa
+      const x = bounds.x * 100;
+      const y = bounds.y * 100;
+      const width = bounds.width * 100;
+      const height = bounds.height * 100;
+      
+      viewportOverlay.style.left = `${x}%`;
+      viewportOverlay.style.top = `${y}%`;
+      viewportOverlay.style.width = `${width}%`;
+      viewportOverlay.style.height = `${height}%`;
+    } catch (error) {
+      console.warn('Error actualizando viewport overlay:', error);
+    }
+  };
+  
+  // Configurar eventos para actualizar el viewport
+  viewer.addHandler('viewport-change', updateViewport);
+  viewer.addHandler('open', () => {
+    setTimeout(updateViewport, 100);
+  });
+  
+  // Permitir navegación haciendo click
+  fallbackDiv.addEventListener('click', (event) => {
+    const rect = fallbackDiv.getBoundingClientRect();
+    const x = (event.clientX - rect.left) / rect.width;
+    const y = (event.clientY - rect.top) / rect.height;
+    
+    const imagePoint = new OpenSeadragon.Point(x, y);
+    viewer.viewport.panTo(imagePoint, true);
+  });
+  
+  return { 
+    element: fallbackDiv, 
+    update: updateViewport,
+    canvas: canvas
+  };
 }
 
 /**
@@ -344,17 +475,34 @@ export function imageToViewportCoords(imgX, imgY) {
  */
 export function getImageDimensions() {
   if (!viewer || !viewer.world.getItemAt(0)) {
-    console.warn('⚠️ No hay imagen cargada');
-    return { width: 4000, height: 3000 }; // Fallback
+    console.warn('⚠️ No hay imagen cargada, usando dimensiones fallback');
+    return { width: 4000, height: 3000 };
   }
   
   try {
     const tiledImage = viewer.world.getItemAt(0);
-    const size = tiledImage.getContentSize();
-    return { width: size.x, height: size.y };
+    const source = tiledImage.source;
+    
+    // Intentar obtener dimensiones desde source (fuente de verdad)
+    let width = source.width || source.dimensions?.x;
+    let height = source.height || source.dimensions?.y;
+
+    // Fallback a getContentSize si no hay width/height directo
+    if (!width || !height) {
+      const size = tiledImage.getContentSize();
+      width = size.x;
+      height = size.y;
+    }
+
+    // Actualizar variables globales para compatibilidad
+    imageWidth = width;
+    imageHeight = height;
+
+    console.log('📏 Dimensiones reales de la imagen:', { width, height });
+    return { width, height };
   } catch (error) {
-    console.error('Error obteniendo dimensiones:', error);
-    return { width: 4000, height: 3000 };
+    console.error('❌ Error obteniendo dimensiones:', error);
+    return { width: imageWidth || 4000, height: imageHeight || 3000 };
   }
 }
 
@@ -417,24 +565,45 @@ export function getZoom() {
 }
 
 /**
- * Ir a coordenadas específicas (normalizadas)
- * @param {number} x - coordenada x normalizada [0-1]
- * @param {number} y - coordenada y normalizada [0-1]
+ * Ir a coordenadas específicas
+ * @param {number} x - coordenada x (normalizada [0-1] por defecto)
+ * @param {number} y - coordenada y (normalizada [0-1] por defecto)
+ * @param {boolean} immediately - Si true, navegar sin animación
  */
-export function panTo(x, y) {
+export function panTo(x, y, immediately = true) {
   if (!viewer) {
     console.warn('⚠️ Viewer no inicializado');
-    return;
+    return false;
   }
   
   try {
+    // Las coordenadas vienen normalizadas [0-1]
+    // Convertir a coordenadas de imagen en píxeles
     const dims = getImageDimensions();
-    const imageX = x * dims.width;
-    const imageY = y * dims.height;
-    const point = new OpenSeadragon.Point(imageX, imageY);
-    viewer.viewport.panTo(point, true);
+    const x_px = Math.round(x * dims.width);
+    const y_px = Math.round(y * dims.height);
+    
+    // Clampear para evitar salir de los bordes
+    const clamped_x = Math.max(0, Math.min(dims.width, x_px));
+    const clamped_y = Math.max(0, Math.min(dims.height, y_px));
+    
+    console.log('📍 panTo:', {
+      input: { x, y },
+      pixels: { x: x_px, y: y_px },
+      clamped: { x: clamped_x, y: clamped_y },
+      dims
+    });
+    
+    // Convertir píxeles de imagen a punto del viewport
+    const imagePoint = new OpenSeadragon.Point(clamped_x, clamped_y);
+    const viewportPoint = viewer.viewport.imageToViewportCoordinates(imagePoint);
+    
+    // Navegar manteniendo el zoom actual
+    viewer.viewport.panTo(viewportPoint, immediately);
+    return true;
   } catch (error) {
-    console.error('Error navegando a coordenadas:', error);
+    console.error('❌ Error navegando a coordenadas:', error);
+    return false;
   }
 }
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { ToolboxProvider } from './context/ToolboxContext';
 import TopMenu from './components/TopMenu';
 import Home from './routes/Home';
 import Login from './routes/Login';
@@ -18,38 +19,40 @@ function App() {
     const { user } = useAuth();
 
     return (
-        <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <TopMenu />
+        <ToolboxProvider>
+            <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+                <TopMenu />
 
-            <main style={{
-                flex: 1,
-                overflow: 'auto',
-                paddingTop: '80px',
-                position: 'relative'
-            }}>
-                <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/register" element={<Register />} />
-                    <Route
-                        path="/challenge/:id"
-                        element={user ? <Challenge /> : <Navigate to="/login" />}
-                    />
-                    <Route
-                        path="/validator"
-                        element={user?.role === 'validator' || user?.role === 'agency' ? <Validator /> : <Navigate to="/" />}
-                    />
-                    <Route
-                        path="/agency"
-                        element={user?.role === 'agency' ? <Agency /> : <Navigate to="/" />}
-                    />
-                    <Route
-                        path="/profile"
-                        element={user ? <Profile /> : <Navigate to="/login" />}
-                    />
-                </Routes>
-            </main>
-        </div>
+                <main style={{
+                    flex: 1,
+                    overflow: 'hidden',
+                    position: 'relative',
+                    height: '100vh'
+                }}>
+                    <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/register" element={<Register />} />
+                        <Route
+                            path="/challenge/:id"
+                            element={user ? <Challenge /> : <Navigate to="/login" />}
+                        />
+                        <Route
+                            path="/validator"
+                            element={user?.role === 'validator' || user?.role === 'agency' ? <Validator /> : <Navigate to="/" />}
+                        />
+                        <Route
+                            path="/agency"
+                            element={user?.role === 'agency' ? <Agency /> : <Navigate to="/" />}
+                        />
+                        <Route
+                            path="/profile"
+                            element={user ? <Profile /> : <Navigate to="/login" />}
+                        />
+                    </Routes>
+                </main>
+            </div>
+        </ToolboxProvider>
     );
 }
 

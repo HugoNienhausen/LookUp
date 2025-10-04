@@ -46,10 +46,19 @@ export const useDraggable = (widgetId, initialPosition = { x: 0, y: 0 }) => {
     return { x: constrainedX, y: constrainedY };
   }, []);
 
+  // Estado para distinguir click de drag
+  const dragStartRef = useRef(null);
+  const dragThresholdRef = useRef({ moved: false, time: 0 });
+
   // Manejar inicio del drag
   const handleMouseDown = useCallback((e) => {
     // Solo permitir drag en el header del widget
     if (!e.target.closest('.widget-header')) return;
+    
+    // Ignorar si el click es en un botón de control (minimizar, cerrar, etc.)
+    if (e.target.closest('button')) {
+      return; // Dejar que el botón maneje su propio evento
+    }
     
     e.preventDefault();
     e.stopPropagation();
@@ -58,17 +67,48 @@ export const useDraggable = (widgetId, initialPosition = { x: 0, y: 0 }) => {
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
 
-    setDragOffset({ x: offsetX, y: offsetY });
-    setIsDragging(true);
+    // Guardar posición inicial y tiempo para detectar drag
+    dragStartRef.current = { x: e.clientX, y: e.clientY };
+    dragThresholdRef.current = { moved: false, time: Date.now() };
 
-    // Añadir clases para feedback visual
-    elementRef.current.classList.add('dragging');
-    document.body.style.cursor = 'grabbing';
-    document.body.style.userSelect = 'none';
+    setDragOffset({ x: offsetX, y: offsetY });
+    
+    // NO activar isDragging inmediatamente
+    // Esperar a que se mueva el mouse más allá del threshold
   }, []);
 
   // Manejar movimiento del drag
   const handleMouseMove = useCallback((e) => {
+    // Si aún no estamos arrastrando, verificar si se superó el threshold
+    if (!isDragging && dragStartRef.current) {
+      const deltaX = Math.abs(e.clientX - dragStartRef.current.x);
+      const deltaY = Math.abs(e.clientY - dragStartRef.current.y);
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      
+      const DRAG_THRESHOLD = 5; // píxeles mínimos para considerar drag
+      const TIME_THRESHOLD = 200; // ms máximo para considerar click
+      
+      const elapsedTime = Date.now() - dragThresholdRef.current.time;
+      
+      // Si se movió más allá del threshold, iniciar drag
+      if (distance > DRAG_THRESHOLD) {
+        dragThresholdRef.current.moved = true;
+        setIsDragging(true);
+        
+        // Añadir clases para feedback visual
+        if (elementRef.current) {
+          elementRef.current.classList.add('dragging');
+        }
+        document.body.style.cursor = 'grabbing';
+        document.body.style.userSelect = 'none';
+      }
+      // Si pasó mucho tiempo sin moverse, cancelar
+      else if (elapsedTime > TIME_THRESHOLD) {
+        dragStartRef.current = null;
+        return;
+      }
+    }
+
     if (!isDragging) return;
 
     const newX = e.clientX - dragOffset.x;
@@ -80,6 +120,9 @@ export const useDraggable = (widgetId, initialPosition = { x: 0, y: 0 }) => {
 
   // Manejar fin del drag
   const handleMouseUp = useCallback(() => {
+    // Limpiar estado de drag
+    dragStartRef.current = null;
+    
     if (!isDragging) return;
 
     setIsDragging(false);
@@ -94,10 +137,14 @@ export const useDraggable = (widgetId, initialPosition = { x: 0, y: 0 }) => {
 
   // Añadir event listeners globales
   useEffect(() => {
-    if (isDragging) {
+    // Escuchar siempre mousemove y mouseup cuando hay dragStartRef
+    // para detectar si se supera el threshold
+    const needsListeners = isDragging || dragStartRef.current !== null;
+    
+    if (needsListeners) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('mouseleave', handleMouseUp); // Para cuando el mouse sale de la ventana
+      document.addEventListener('mouseleave', handleMouseUp);
 
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);

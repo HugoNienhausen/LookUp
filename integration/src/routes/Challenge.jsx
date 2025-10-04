@@ -1,13 +1,18 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ToolboxProvider } from '../context/ToolboxContext';
 import * as api from '../lib/api';
 import SeadragonWrapper from '../components/SeadragonWrapper';
-import Toolbox from '../components/Toolbox';
+import CanvasOverlay from '../components/CanvasOverlay';
+import MinimalToolbox from '../components/MinimalToolbox';
+import ZoomControls from '../components/ZoomControls';
+import CoordinateNavigator from '../components/CoordinateNavigator';
+import { getViewer, getZoom, panTo, isViewerReady } from '../lib/seadragon-loader';
 
 /**
  * Página de Challenge - Viewer + Anotación
- * Combina SeadragonWrapper, Annotorious y Toolbox
+ * Combina SeadragonWrapper, CanvasOverlay y MinimalToolbox
  */
 const Challenge = () => {
     const { id } = useParams();
@@ -17,105 +22,90 @@ const Challenge = () => {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [showPromotion, setShowPromotion] = useState(false);
-    const [annotorious, setAnnotorious] = useState(null);
-    const [annotations, setAnnotations] = useState([]);
-
-    // Estado del toolbox
-    const [selectedTool, setSelectedTool] = useState('select');
-    const [canUndo, setCanUndo] = useState(false);
-    const [canRedo, setCanRedo] = useState(false);
-
-    // Handlers para Annotorious
-    const handleAnnotoriousReady = (anno) => {
-        console.log('🎨 Annotorious listo en Challenge');
-        setAnnotorious(anno);
-
-        // Configurar eventos sin interferir con el viewport
-        anno.on('createAnnotation', (annotation) => {
-            console.log('📝 Nueva anotación creada:', annotation);
-            setAnnotations(prev => [...prev, annotation]);
-
-            // Después de crear, volver automáticamente al modo selección
-            setTimeout(() => {
-                setSelectedTool('select');
-                anno.setDrawingTool(null);
-                const viewer = window.viewer || window.__osdViewer;
-                if (viewer) {
-                    viewer.setMouseNavEnabled(true);
-                    viewer.outerTracker.setTracking(true);
-                }
-                console.log('🔄 Volviendo al modo selección automáticamente');
-            }, 100);
-        });
-
-        anno.on('updateAnnotation', (annotation, previous) => {
-            console.log('✏️ Anotación actualizada:', annotation);
-            setAnnotations(prev => prev.map(a => a.id === annotation.id ? annotation : a));
-        });
-
-        anno.on('deleteAnnotation', (annotation) => {
-            console.log('🗑️ Anotación eliminada:', annotation);
-            setAnnotations(prev => prev.filter(a => a.id !== annotation.id));
-        });
-
-        // Evento cuando se cancela una anotación (restaurar pan)
-        anno.on('cancelAnnotation', () => {
-            console.log('❌ Anotación cancelada - restaurando navegación');
-            const viewer = window.viewer || window.__osdViewer;
-            if (viewer) {
-                viewer.setMouseNavEnabled(true);
-                viewer.outerTracker.setTracking(true);
-            }
-        });
-    };
+    const [savedViewport, setSavedViewport] = useState(null);
 
     useEffect(() => {
         loadChallenge();
     }, [id]);
 
-    // Actualizar can undo/redo
+    // Restaurar viewport cuando la imagen esté lista
     useEffect(() => {
-        const interval = setInterval(() => {
-            if (window.canvasOverlayCanUndo) {
-                setCanUndo(window.canvasOverlayCanUndo());
-            }
-            if (window.canvasOverlayCanRedo) {
-                setCanRedo(window.canvasOverlayCanRedo());
-            }
-        }, 100);
+        if (challenge && savedViewport) {
+            // Esperar un poco para que la imagen se cargue completamente
+            const timer = setTimeout(() => {
+                restoreViewport();
+            }, 500);
 
-        return () => clearInterval(interval);
-    }, []);
+            return () => clearTimeout(timer);
+        }
+    }, [currentImageIndex, challenge, savedViewport]);
 
     const loadChallenge = async () => {
         try {
+            setLoading(true);
             const data = await api.getChallenge(id);
             setChallenge(data);
         } catch (error) {
             console.error('Error cargando challenge:', error);
+            alert('Error al cargar el challenge');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSave = async () => {
-        if (annotations.length === 0) {
-            alert('No hay anotaciones para guardar');
-            return;
+    // Guardar viewport actual
+    const saveCurrentViewport = () => {
+        if (isViewerReady()) {
+            const viewer = getViewer();
+            if (viewer) {
+                const viewport = viewer.viewport;
+                const center = viewport.getCenter();
+                const zoom = viewport.getZoom();
+                const bounds = viewport.getBounds();
+                setSavedViewport({ center, zoom, bounds });
+                console.log('💾 Viewport guardado:', { center, zoom, bounds });
+            }
         }
+    };
 
+    // Restaurar viewport guardado
+    const restoreViewport = () => {
+        if (savedViewport && isViewerReady()) {
+            const viewer = getViewer();
+            if (viewer) {
+                const viewport = viewer.viewport;
+
+                // Usar fitBounds si está disponible, sino usar center y zoom
+                if (savedViewport.bounds) {
+                    viewport.fitBounds(savedViewport.bounds);
+                } else {
+                    viewport.zoomTo(savedViewport.zoom);
+                    viewport.panTo(savedViewport.center);
+                }
+
+                console.log('🔄 Viewport restaurado:', savedViewport);
+            }
+        }
+    };
+
+    const handleSave = async () => {
         setSaving(true);
-
         try {
             const currentImage = challenge.images[currentImageIndex];
+
+            // Obtener datos del canvas
+            const canvas = document.querySelector('canvas');
+            if (!canvas) {
+                alert('No hay canvas para guardar');
+                return;
+            }
 
             const annotationData = {
                 challengeId: id,
                 imageId: currentImage.id,
                 userId: user.id,
-                annotations: annotations,
+                canvasData: canvas.toDataURL(),
                 meta: {
-                    tool: 'annotorious',
                     timestamp: new Date().toISOString()
                 }
             };
@@ -133,9 +123,7 @@ const Challenge = () => {
                 }
             }
 
-            alert('¡Anotación guardada exitosamente!');
-            setStrokes([]);
-
+            alert('Anotación guardada correctamente');
         } catch (error) {
             console.error('Error guardando anotación:', error);
             alert('Error al guardar la anotación');
@@ -144,15 +132,19 @@ const Challenge = () => {
         }
     };
 
-    const handleUndo = () => {
-        if (window.canvasOverlayUndo) {
-            window.canvasOverlayUndo();
+    const nextImage = () => {
+        if (challenge && currentImageIndex < challenge.images.length - 1) {
+            // Guardar viewport actual antes de cambiar imagen
+            saveCurrentViewport();
+            setCurrentImageIndex(currentImageIndex + 1);
         }
     };
 
-    const handleRedo = () => {
-        if (window.canvasOverlayRedo) {
-            window.canvasOverlayRedo();
+    const prevImage = () => {
+        if (currentImageIndex > 0) {
+            // Guardar viewport actual antes de cambiar imagen
+            saveCurrentViewport();
+            setCurrentImageIndex(currentImageIndex - 1);
         }
     };
 
@@ -162,10 +154,11 @@ const Challenge = () => {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                height: '100%',
-                color: 'white'
+                height: '100vh',
+                background: 'var(--background)',
+                color: 'var(--foreground)'
             }}>
-                Cargando challenge...
+                <div>Cargando challenge...</div>
             </div>
         );
     }
@@ -176,10 +169,11 @@ const Challenge = () => {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                height: '100%',
-                color: 'white'
+                height: '100vh',
+                background: 'var(--background)',
+                color: 'var(--foreground)'
             }}>
-                Challenge no encontrado
+                <div>Challenge no encontrado</div>
             </div>
         );
     }
@@ -187,145 +181,154 @@ const Challenge = () => {
     const currentImage = challenge.images[currentImageIndex];
 
     return (
-        <div style={{ position: 'relative', height: 'calc(100vh - 80px)' }}>
-            {/* Promotion banner */}
-            {showPromotion && (
-                <div style={{
-                    position: 'fixed',
-                    top: '100px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: 'linear-gradient(135deg, var(--primary), var(--accent))',
-                    color: 'var(--primary-foreground)',
-                    padding: '20px 40px',
-                    borderRadius: '12px',
-                    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
-                    zIndex: 2000,
-                    fontSize: '18px',
-                    fontWeight: 'bold',
-                    animation: 'slideDown 0.5s ease'
-                }}>
-                    🎉 ¡Felicidades! Ahora eres Validador
-                </div>
-            )}
-
-            {/* Info panel */}
+        <ToolboxProvider>
             <div style={{
-                position: 'absolute',
-                top: '20px',
-                left: '20px',
-                zIndex: 100,
-                background: 'rgba(44, 53, 49, 0.92)',
-                backdropFilter: 'blur(6px)',
-                padding: '20px',
-                borderRadius: '12px',
-                maxWidth: '300px',
-                border: '1px solid var(--border)'
+                width: '100%',
+                height: '100%',
+                background: 'var(--background)',
+                color: 'var(--foreground)',
+                position: 'relative',
+                overflow: 'hidden'
             }}>
-                <h2 style={{
-                    fontSize: '20px',
-                    fontWeight: '600',
-                    marginBottom: '8px',
-                    color: 'white'
+                {/* Header con información */}
+                <div style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '20px',
+                    background: 'rgba(44, 53, 49, 0.9)',
+                    backdropFilter: 'blur(6px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    zIndex: 1000,
+                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3)'
                 }}>
-                    {challenge.title}
-                </h2>
-                <p style={{
-                    fontSize: '14px',
-                    color: 'var(--muted-foreground)',
-                    marginBottom: '16px'
-                }}>
-                    {challenge.description}
-                </p>
-
-                {/* Image selector */}
-                <div style={{ marginBottom: '16px' }}>
-                    <label style={{
-                        fontSize: '12px',
-                        color: 'var(--muted-foreground)',
-                        display: 'block',
-                        marginBottom: '8px'
-                    }}>
+                    <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '4px' }}>
+                        {challenge.title}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>
                         Imagen {currentImageIndex + 1} de {challenge.images.length}
-                    </label>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                        {challenge.images.map((img, idx) => (
-                            <button
-                                key={img.id}
-                                onClick={() => setCurrentImageIndex(idx)}
-                                style={{
-                                    width: '40px',
-                                    height: '40px',
-                                    border: idx === currentImageIndex ? '2px solid var(--primary)' : '1px solid var(--border)',
-                                    borderRadius: '6px',
-                                    background: idx === currentImageIndex ? 'var(--primary)' : 'rgba(255,255,255,0.1)',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    fontSize: '12px'
-                                }}
-                            >
-                                {idx + 1}
-                            </button>
-                        ))}
                     </div>
                 </div>
 
-                {/* Stats */}
+                {/* Controles de navegación */}
                 <div style={{
-                    padding: '12px',
-                    background: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: '8px',
-                    fontSize: '12px'
-                }}>
-                    <div style={{ color: 'var(--muted-foreground)' }}>Anotaciones: {annotations.length}</div>
-                    <div style={{ color: 'var(--muted-foreground)' }}>Herramienta: {selectedTool}</div>
-                </div>
-            </div>
-
-            {/* Viewer con Annotorious */}
-            <div style={{ width: '100%', height: '100%', position: 'relative' }}>
-                <SeadragonWrapper
-                    imageUrl={currentImage.dziUrl || currentImage.url}
-                    showNavigator={true}
-                    onReady={() => console.log('✅ Viewer listo para anotaciones')}
-                    onAnnotoriousReady={handleAnnotoriousReady}
-                />
-            </div>
-
-            {/* Toolbox */}
-            <Toolbox
-                selectedTool={selectedTool}
-                onToolSelect={setSelectedTool}
-                onSave={handleSave}
-                onUndo={handleUndo}
-                onRedo={handleRedo}
-                canUndo={canUndo}
-                canRedo={canRedo}
-                annotorious={annotorious}
-            />
-
-            {/* Saving overlay */}
-            {saving && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'rgba(0,0,0,0.7)',
+                    position: 'absolute',
+                    bottom: '20px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    background: 'rgba(44, 53, 49, 0.9)',
+                    backdropFilter: 'blur(6px)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    zIndex: 1000,
                     display: 'flex',
-                    justifyContent: 'center',
+                    gap: '12px',
                     alignItems: 'center',
-                    zIndex: 3000,
-                    color: 'white',
-                    fontSize: '20px'
+                    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3)'
                 }}>
-                    Guardando anotación...
+                    <button
+                        onClick={prevImage}
+                        disabled={currentImageIndex === 0}
+                        style={{
+                            padding: '8px 12px',
+                            background: currentImageIndex === 0 ? 'rgba(255, 255, 255, 0.1)' : 'var(--primary)',
+                            border: 'none',
+                            borderRadius: '6px',
+                            color: currentImageIndex === 0 ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
+                            cursor: currentImageIndex === 0 ? 'not-allowed' : 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                        }}
+                    >
+                        ← Anterior
+                    </button>
+
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        style={{
+                            padding: '8px 16px',
+                            background: 'var(--accent)',
+                            border: 'none',
+                            borderRadius: '6px',
+                            color: 'var(--accent-foreground)',
+                            cursor: saving ? 'not-allowed' : 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                        }}
+                    >
+                        {saving ? 'Guardando...' : '💾 Guardar'}
+                    </button>
+
+                    <button
+                        onClick={nextImage}
+                        disabled={currentImageIndex === challenge.images.length - 1}
+                        style={{
+                            padding: '8px 12px',
+                            background: currentImageIndex === challenge.images.length - 1 ? 'rgba(255, 255, 255, 0.1)' : 'var(--primary)',
+                            border: 'none',
+                            borderRadius: '6px',
+                            color: currentImageIndex === challenge.images.length - 1 ? 'var(--muted-foreground)' : 'var(--primary-foreground)',
+                            cursor: currentImageIndex === challenge.images.length - 1 ? 'not-allowed' : 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                        }}
+                    >
+                        Siguiente →
+                    </button>
                 </div>
-            )}
-        </div>
+
+                {/* Viewer + Canvas */}
+                <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+                    <SeadragonWrapper
+                        imageUrl={currentImage.dziUrl || currentImage.url}
+                        showNavigator={true}
+                        onReady={() => {
+                            console.log('✅ Viewer listo para anotaciones');
+                            // Restaurar viewport si está guardado
+                            if (savedViewport) {
+                                setTimeout(() => {
+                                    restoreViewport();
+                                }, 500);
+                            }
+                        }}
+                    />
+                    <CanvasOverlay />
+                </div>
+
+                {/* Toolbox */}
+                <MinimalToolbox />
+
+                {/* Zoom Controls */}
+                <ZoomControls />
+
+                {/* Coordinate Navigator */}
+                <CoordinateNavigator />
+
+                {/* Promoción */}
+                {showPromotion && (
+                    <div style={{
+                        position: 'fixed',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: 'var(--accent)',
+                        color: 'var(--accent-foreground)',
+                        padding: '20px 30px',
+                        borderRadius: '12px',
+                        zIndex: 10000,
+                        fontSize: '16px',
+                        fontWeight: '500',
+                        boxShadow: '0 12px 32px rgba(0, 0, 0, 0.4)'
+                    }}>
+                        🎉 ¡Promocionado a Validator!
+                    </div>
+                )}
+            </div>
+        </ToolboxProvider>
     );
 };
 
 export default Challenge;
-
