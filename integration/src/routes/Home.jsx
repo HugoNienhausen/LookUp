@@ -3,9 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../lib/api';
 
-/**
- * Página principal - Landing y lista de challenges
- */
 const Home = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -26,7 +23,7 @@ const Home = () => {
             setChallenges(challengesData);
             setRanking(rankingData.slice(0, 5)); // Top 5
         } catch (error) {
-            console.error('Error cargando datos:', error);
+            console.error('Error loading data:', error);
         } finally {
             setLoading(false);
         }
@@ -41,7 +38,7 @@ const Home = () => {
                 height: '100%',
                 color: 'white'
             }}>
-                Cargando...
+                Loading...
             </div>
         );
     }
@@ -53,7 +50,6 @@ const Home = () => {
             margin: '0 auto',
             color: 'white'
         }}>
-            {/* Hero section */}
             <div style={{ marginBottom: '48px', textAlign: 'center' }}>
                 <h1 style={{
                     fontSize: '48px',
@@ -63,7 +59,7 @@ const Home = () => {
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent'
                 }}>
-                    Bienvenido a LookUp
+                    Welcome to LookUp
                 </h1>
                 <p style={{
                     fontSize: '20px',
@@ -71,15 +67,14 @@ const Home = () => {
                     maxWidth: '600px',
                     margin: '0 auto'
                 }}>
-                    Contribuye a la ciencia anotando imágenes espaciales y gana recompensas
+                    Contribute to science by annotating space images and earn rewards
                 </p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '32px' }}>
-                {/* Challenges */}
                 <div>
                     <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '24px' }}>
-                        Challenges Disponibles
+                        Available Challenges
                     </h2>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                         {challenges.map(challenge => (
@@ -116,7 +111,7 @@ const Home = () => {
                                         padding: '4px 12px',
                                         borderRadius: '12px'
                                     }}>
-                                        {challenge.images.length} imágenes
+                                        {challenge.images.length} images
                                     </span>
                                     <span style={{
                                         fontSize: '12px',
@@ -133,10 +128,9 @@ const Home = () => {
                     </div>
                 </div>
 
-                {/* Ranking */}
                 <div>
                     <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '24px' }}>
-                        🏆 Ranking Global
+                        🏆 Global Ranking
                     </h2>
                     <div className="glass" style={{ padding: '20px', borderRadius: '12px' }}>
                         {ranking.map((entry, index) => (
@@ -168,14 +162,13 @@ const Home = () => {
                                         {entry.name}
                                     </div>
                                     <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>
-                                        {entry.score} puntos
+                                        {entry.score} points
                                     </div>
                                 </div>
                             </div>
                         ))}
                     </div>
 
-                    {/* Stats del usuario si está logueado */}
                     {user && (
                         <div className="glass" style={{
                             padding: '20px',
@@ -183,12 +176,53 @@ const Home = () => {
                             marginTop: '20px'
                         }}>
                             <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px' }}>
-                                Tus Estadísticas
+                                Your Statistics
                             </h3>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                 <div>
+                                    <div style={{ fontSize: '12px', color: 'var(--muted-foreground)', marginBottom: '8px' }}>
+                                        Role
+                                    </div>
+                                    <div style={{
+                                        display: 'inline-block',
+                                        padding: '8px 16px',
+                                        background: user.role === 'validator' 
+                                            ? 'linear-gradient(135deg, rgba(108, 207, 246, 0.25), rgba(108, 207, 246, 0.15))' 
+                                            : user.role === 'agency' 
+                                            ? 'linear-gradient(135deg, rgba(255, 209, 102, 0.25), rgba(255, 209, 102, 0.15))' 
+                                            : 'linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.15))',
+                                        border: user.role === 'validator' 
+                                            ? '2px solid rgba(108, 207, 246, 0.5)' 
+                                            : user.role === 'agency' 
+                                            ? '2px solid rgba(255, 209, 102, 0.5)' 
+                                            : '2px solid rgba(139, 92, 246, 0.5)',
+                                        borderRadius: '24px',
+                                        fontSize: '15px',
+                                        fontWeight: '700',
+                                        color: user.role === 'validator' 
+                                            ? '#6CCFF6' 
+                                            : user.role === 'agency' 
+                                            ? '#FFD166' 
+                                            : '#A78BFA',
+                                        boxShadow: user.role === 'validator' 
+                                            ? '0 4px 12px rgba(108, 207, 246, 0.3), 0 0 20px rgba(108, 207, 246, 0.15)' 
+                                            : user.role === 'agency' 
+                                            ? '0 4px 12px rgba(255, 209, 102, 0.3), 0 0 20px rgba(255, 209, 102, 0.15)' 
+                                            : '0 4px 12px rgba(139, 92, 246, 0.3), 0 0 20px rgba(139, 92, 246, 0.15)',
+                                        transition: 'all 0.3s ease',
+                                        textShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+                                        letterSpacing: '0.5px',
+                                        backdropFilter: 'blur(10px)'
+                                    }}>
+                                        {user.role === 'explorer' ? '🔍 Explorer' :
+                                         user.role === 'participant' ? '🔍 Explorer' :
+                                         user.role === 'validator' ? '✓ Validator' :
+                                         user.role === 'agency' ? '🏢 Agency' : user.role}
+                                    </div>
+                                </div>
+                                <div>
                                     <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>
-                                        Puntuación
+                                        Score
                                     </div>
                                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--primary)' }}>
                                         {user.score || 0}
@@ -196,13 +230,13 @@ const Home = () => {
                                 </div>
                                 <div>
                                     <div style={{ fontSize: '12px', color: 'var(--muted-foreground)' }}>
-                                        Anotaciones
+                                        Annotations
                                     </div>
                                     <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--accent)' }}>
                                         {user.annotations_count || 0}
                                     </div>
                                 </div>
-                                {user.role === 'participant' && user.annotations_count < 20 && (
+                                {(user.role === 'explorer' || user.role === 'participant') && user.annotations_count < 20 && (
                                     <div style={{
                                         marginTop: '8px',
                                         padding: '12px',
@@ -211,7 +245,7 @@ const Home = () => {
                                         fontSize: '12px',
                                         color: 'var(--primary)'
                                     }}>
-                                        🎯 {20 - user.annotations_count} anotaciones más para ser Validador
+                                        🎯 {20 - user.annotations_count} more annotations to become a Validator
                                     </div>
                                 )}
                             </div>

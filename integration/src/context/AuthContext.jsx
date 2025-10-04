@@ -3,26 +3,18 @@ import * as api from '../lib/api';
 
 const AuthContext = createContext(null);
 
-/**
- * Hook personalizado para acceder al contexto de autenticación
- */
 export const useAuth = () => {
     const context = useContext(AuthContext);
     if (!context) {
-        throw new Error('useAuth debe usarse dentro de un AuthProvider');
+        throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;
 };
 
-/**
- * Provider de autenticación
- * Maneja login, logout, registro y estado del usuario
- */
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Cargar usuario desde localStorage al iniciar
     useEffect(() => {
         const storedUser = localStorage.getItem('user');
         if (storedUser) {
@@ -31,71 +23,54 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
-    /**
-     * Iniciar sesión con email y password
-     */
     const login = async (email, password) => {
         try {
             const userData = await api.login(email, password);
-            // userData ahora incluye el token JWT
             setUser(userData);
             localStorage.setItem('user', JSON.stringify(userData));
             return { success: true };
         } catch (error) {
-            const errorMessage = error.response?.data?.error || error.message || 'Error al iniciar sesión';
+            const errorMessage = error.response?.data?.error || error.message || 'Error signing in';
             return { success: false, error: errorMessage };
         }
     };
 
-    /**
-     * Registrar nuevo usuario
-     */
-    const register = async (name, email, password, role = 'participant') => {
+    const register = async (name, email, password, role = 'explorer') => {
         try {
             const userData = await api.register(name, email, password, role);
-            // userData ahora incluye el token JWT
             setUser(userData);
             localStorage.setItem('user', JSON.stringify(userData));
             return { success: true };
         } catch (error) {
-            const errorMessage = error.response?.data?.error || error.message || 'Error al registrarse';
+            const errorMessage = error.response?.data?.error || error.message || 'Error registering';
             return { success: false, error: errorMessage };
         }
     };
 
-    /**
-     * Cerrar sesión
-     */
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
     };
 
-    /**
-     * Actualizar datos del usuario (ej: después de promoción a validator)
-     */
     const updateUser = (updates) => {
         const updatedUser = { ...user, ...updates };
         setUser(updatedUser);
         localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
-    /**
-     * Refrescar datos del usuario desde el backend
-     */
     const refreshUser = async () => {
         try {
             const userData = await api.getMe();
             const updatedUser = { 
                 ...user, 
                 ...userData,
-                token: user.token // Mantener el token actual
+                token: user.token
             };
             setUser(updatedUser);
             localStorage.setItem('user', JSON.stringify(updatedUser));
             return updatedUser;
         } catch (error) {
-            console.error('Error refrescando usuario:', error);
+            console.error('Error refreshing user:', error);
             return null;
         }
     };
@@ -118,7 +93,7 @@ export const AuthProvider = ({ children }) => {
             height: '100vh',
             color: 'var(--foreground)'
         }}>
-            Cargando...
+            Loading...
         </div>;
     }
 

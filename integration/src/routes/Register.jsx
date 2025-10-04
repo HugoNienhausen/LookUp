@@ -2,15 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-/**
- * Página de registro
- */
 const Register = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [role, setRole] = useState('participant');
+    const [role, setRole] = useState('explorer');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { register } = useAuth();
@@ -21,12 +18,12 @@ const Register = () => {
         setError('');
 
         if (password !== confirmPassword) {
-            setError('Las contraseñas no coinciden');
+            setError('Passwords do not match');
             return;
         }
 
         if (password.length < 6) {
-            setError('La contraseña debe tener al menos 6 caracteres');
+            setError('Password must be at least 6 characters long');
             return;
         }
 
@@ -37,7 +34,7 @@ const Register = () => {
         if (result.success) {
             navigate('/');
         } else {
-            setError(result.error || 'Error al registrarse');
+            setError(result.error || 'Error registering');
         }
 
         setLoading(false);
@@ -64,7 +61,7 @@ const Register = () => {
                     color: 'white',
                     textAlign: 'center'
                 }}>
-                    Crear Cuenta
+                    Create Account
                 </h2>
                 <p style={{
                     fontSize: '14px',
@@ -72,7 +69,7 @@ const Register = () => {
                     textAlign: 'center',
                     marginBottom: '32px'
                 }}>
-                    Únete a la comunidad de anotadores
+                    Join the annotators community
                 </p>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -84,13 +81,13 @@ const Register = () => {
                             marginBottom: '8px',
                             fontWeight: '500'
                         }}>
-                            Nombre completo
+                            Full name
                         </label>
                         <input
                             type="text"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Juan Pérez"
+                            placeholder="John Doe"
                             required
                             style={{
                                 width: '100%',
@@ -118,7 +115,7 @@ const Register = () => {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="tu@email.com"
+                            placeholder="your@email.com"
                             required
                             style={{
                                 width: '100%',
@@ -140,7 +137,7 @@ const Register = () => {
                             marginBottom: '8px',
                             fontWeight: '500'
                         }}>
-                            Tipo de cuenta
+                            Account type
                         </label>
                         <select
                             value={role}
@@ -157,11 +154,11 @@ const Register = () => {
                                 cursor: 'pointer'
                             }}
                         >
-                            <option value="participant" style={{ background: '#2C3531', color: 'white' }}>
-                                🙋 Participante - Anotar imágenes
+                            <option value="explorer" style={{ background: '#2C3531', color: 'white' }}>
+                                🔍 Explorer - Annotate images
                             </option>
                             <option value="agency" style={{ background: '#2C3531', color: 'white' }}>
-                                🏢 Agencia - Crear challenges
+                                🏢 Agency - Create challenges
                             </option>
                         </select>
                         <p style={{
@@ -170,8 +167,8 @@ const Register = () => {
                             marginTop: '6px',
                             fontStyle: 'italic'
                         }}>
-                            {role === 'participant' && '📝 Podrás anotar imágenes y ganar puntos. Con 20 anotaciones serás promovido automáticamente a Validador.'}
-                            {role === 'agency' && '🚀 Podrás crear nuevos challenges para la comunidad y validar anotaciones.'}
+                            {role === 'explorer' && '📝 You can annotate images and earn points. With 20 annotations you will be automatically promoted to Validator.'}
+                            {role === 'agency' && '🚀 You can create new challenges for the community and validate annotations.'}
                         </p>
                     </div>
 
@@ -183,7 +180,7 @@ const Register = () => {
                             marginBottom: '8px',
                             fontWeight: '500'
                         }}>
-                            Contraseña
+                            Password
                         </label>
                         <input
                             type="password"
@@ -211,7 +208,7 @@ const Register = () => {
                             marginBottom: '8px',
                             fontWeight: '500'
                         }}>
-                            Confirmar contraseña
+                            Confirm password
                         </label>
                         <input
                             type="password"
@@ -260,7 +257,7 @@ const Register = () => {
                             opacity: loading ? 0.6 : 1
                         }}
                     >
-                        {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
+                        {loading ? 'Creating account...' : 'Create Account'}
                     </button>
                 </form>
 
@@ -270,7 +267,7 @@ const Register = () => {
                     fontSize: '14px',
                     color: 'var(--muted-foreground)'
                 }}>
-                    ¿Ya tienes cuenta?{' '}
+                    Already have an account?{' '}
                     <span
                         onClick={() => navigate('/login')}
                         style={{
@@ -279,7 +276,7 @@ const Register = () => {
                             fontWeight: '500'
                         }}
                     >
-                        Inicia sesión aquí
+                        Sign in here
                     </span>
                 </div>
             </div>

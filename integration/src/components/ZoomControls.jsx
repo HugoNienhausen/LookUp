@@ -9,7 +9,9 @@ const ZoomControls = () => {
     const [isHovered, setIsHovered] = useState(false);
 
     // Hook para hacer los controles de zoom arrastrables
-    const { elementRef, draggableStyle, handleMouseDown } = useDraggable('zoom-controls', { x: window.innerWidth - 80, y: window.innerHeight - 200 });
+    const initialX = window.innerWidth > 120 ? window.innerWidth - 100 : 20;
+    const initialY = window.innerHeight > 250 ? window.innerHeight - 230 : 100;
+    const { elementRef, draggableStyle, handleMouseDown } = useDraggable('zoom-controls', { x: initialX, y: initialY });
 
     useEffect(() => {
         const updateZoom = () => {
@@ -127,7 +129,7 @@ const ZoomControls = () => {
                         pointerEvents: 'auto',
                         zIndex: 10
                     }}
-                    title="Minimizar"
+                    title="Minimize"
                 >
                     ─
                 </button>

@@ -11,8 +11,6 @@ const JWT_SECRET = "Hugo animal";
 
 app.use(cors());
 app.use(express.json());
-
-// Health check endpoint
 app.get('/health', (req, res) => {
     res.status(200).json({ 
         status: 'ok', 
@@ -31,19 +29,18 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Middleware to verify the token and role
 const verifyTokenAndRole = (allowedRoles) => {
     return (req, res, next) => {
         const authHeader = req.headers['authorization'];
         const token = authHeader && authHeader.split(' ')[1];
 
         if (!token) {
-            return res.status(401).json({ error: "Acceso denegado. Token no proporcionado" });
+            return res.status(401).json({ error: "Access denied. Token not provided" });
         }
 
         jwt.verify(token, JWT_SECRET, (err, decoded) => {
             if (err) {
-                return res.status(401).json({ error: "Token inválido" });
+                return res.status(401).json({ error: "Invalid token" });
             }
 
             const sql = `
@@ -54,7 +51,7 @@ const verifyTokenAndRole = (allowedRoles) => {
 
             db.get(sql, [decoded.userId], (err, row) => {
                 if (err || !row || !allowedRoles.includes(row.role_name)) {
-                    return res.status(403).json({ error: "Acceso denegado. Rol no permitido" });
+                    return res.status(403).json({ error: "Access denied. Role not allowed" });
                 }
 
                 req.user = decoded;
@@ -64,20 +61,17 @@ const verifyTokenAndRole = (allowedRoles) => {
     }
 };
 
-// AUTHENTICATION ROUTES
-
-// 1.Register
 app.post('/api/auth/register', async (req, res) => {
     const { name, email, password, role = 'participant' } = req.body;
 
     if (!name || !email || !password || !role) {
-        return res.status(400).json({ error: "Todos los campos son requeridos" });
+        return res.status(400).json({ error: "All fields are required" });
     }
 
     const sqlGetRole = 'SELECT id FROM roles WHERE role_name = ?';
     db.get(sqlGetRole, [role], async (err, roleRow) => {
         if (err || !roleRow) {
-            return res.status(400).json({ error: "Rol no encontrado" });
+            return res.status(400).json({ error: "Role not found" });
         }
 
         const role_id = roleRow.id;
@@ -91,18 +85,18 @@ app.post('/api/auth/register', async (req, res) => {
             db.run(sqlInsertUser, [id_user, name, email, hashedPassword], function(err) {
                 if (err) {
                     db.run('ROLLBACK');
-                    return res.status(500).json({ error: "Error al registrar el usuario" });
+                    return res.status(500).json({ error: "Error registering user" });
                 }
 
                 const sqlInsertUserRole = 'INSERT INTO users_roles (user_id, role_id) VALUES (?, ?)';
                 db.run(sqlInsertUserRole, [id_user, role_id], function(err) {
                     if (err) {
                         db.run('ROLLBACK');
-                        return res.status(500).json({ error: "Error al registrar el usuario" });
+                        return res.status(500).json({ error: "Error registering user" });
                     }
 
                     db.run('COMMIT');
-                    res.status(201).json({ message: "Usuario registrado correctamente", userId: id_user, role: role });
+                    res.status(201).json({ message: "User registered successfully", userId: id_user, role: role });
                 });
             });
             
@@ -110,11 +104,10 @@ app.post('/api/auth/register', async (req, res) => {
     })
 });
 
-// 2. Login
 app.post('/api/auth/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
-        return res.status(400).json({ error: "Todos los campos son requeridos" });
+        return res.status(400).json({ error: "All fields are required" });
     }
 
     const sql = `
@@ -127,22 +120,21 @@ app.post('/api/auth/login', async (req, res) => {
 
     db.get(sql, [email], async (err, user) => {
         if (err) {
-            return res.status(500).json({ error: "Error al obtener el usuario" });
+            return res.status(500).json({ error: "Error retrieving user" });
         }
         if (!user) {
-            return res.status(401).json({ error: "Usuario no encontrado" });
+            return res.status(401).json({ error: "User not found" });
         }
 
         const isPasswordValid = await bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
-            return res.status(401).json({ error: "Contraseña incorrecta" });
+            return res.status(401).json({ error: "Incorrect password" });
         }
 
         const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '1h' });
         
-        // Devolver token y datos del usuario
         res.json({ 
-            message: 'Login exitoso', 
+            message: 'Login successful', 
             token,
             user: {
                 id: user.id,
@@ -155,41 +147,33 @@ app.post('/api/auth/login', async (req, res) => {
     });
 });
 
-// APP ROUTES
-
-// 3. Save Annotation (Protected - requires authentication)
 app.post('/api/annotations', verifyTokenAndRole(['participant', 'validator', 'agency']), async (req, res) => {
-    const user_id = req.user.userId; // Extraer del token (más seguro)
+    const user_id = req.user.userId;
     const { image_id, annotations, metadata } = req.body;
 
     if (!image_id || !annotations) {
-        return res.status(400).json({ error: "image_id y annotations son requeridos" });
+        return res.status(400).json({ error: "image_id and annotations are required" });
     }
 
     const sql = 'INSERT INTO annotations (user_id, image_id, annotations_data, metadata, status) VALUES (?, ?, ?, ?, ?)';
     db.run(sql, [user_id, image_id, JSON.stringify(annotations), JSON.stringify(metadata), 'pending'], function(err) {
         if (err) {
-            return res.status(500).json({ error: "Error al guardar la anotación", details: err.message });
+            return res.status(500).json({ error: "Error saving annotation", details: err.message });
         }
 
         const annotation_id = this.lastID;
 
-        // Update total score (+10 puntos por anotación)
         db.run('UPDATE users SET total_score = total_score + 10 WHERE id = ?', [user_id]);
-
-        // Check for auto-promotion to validator (20+ annotations)
         const countSql = 'SELECT COUNT(*) as count FROM annotations WHERE user_id = ?';
         db.get(countSql, [user_id], (err, row) => {
             if (err) {
                 return res.status(201).json({ 
-                    message: "Anotación guardada correctamente", 
+                    message: "Annotation saved successfully", 
                     annotation_id: annotation_id 
                 });
             }
 
             const annotationCount = row.count;
-            
-            // Check current role
             const roleSql = `
                 SELECT r.role_name 
                 FROM users_roles ur
@@ -200,38 +184,32 @@ app.post('/api/annotations', verifyTokenAndRole(['participant', 'validator', 'ag
             db.get(roleSql, [user_id], (err, roleRow) => {
                 if (err || !roleRow) {
                     return res.status(201).json({ 
-                        message: "Anotación guardada correctamente", 
+                        message: "Annotation saved successfully", 
                         annotation_id: annotation_id 
                     });
                 }
-
-                // Promote to validator if >= 5 annotations and still participant
                 if (annotationCount >= 20 && roleRow.role_name === 'participant') {
-                    // Get validator role id
                     db.get('SELECT id FROM roles WHERE role_name = ?', ['validator'], (err, validatorRole) => {
                         if (err || !validatorRole) {
                             return res.status(201).json({ 
-                                message: "Anotación guardada correctamente", 
+                                message: "Annotation saved successfully", 
                                 annotation_id: annotation_id 
                             });
                         }
-
-                        // Update user role to validator
                         db.run('UPDATE users_roles SET role_id = ? WHERE user_id = ?', 
                             [validatorRole.id, user_id], 
                             (err) => {
                                 if (err) {
                                     return res.status(201).json({ 
-                                        message: "Anotación guardada correctamente", 
+                                        message: "Annotation saved successfully", 
                                         annotation_id: annotation_id 
                                     });
                                 }
 
-                                // Give bonus points for promotion (+500)
                                 db.run('UPDATE users SET total_score = total_score + 500 WHERE id = ?', [user_id]);
 
                                 res.status(201).json({ 
-                                    message: "Anotación guardada correctamente", 
+                                    message: "Annotation saved successfully", 
                                     annotation_id: annotation_id,
                                     promoted: true,
                                     new_role: 'validator',
@@ -243,7 +221,7 @@ app.post('/api/annotations', verifyTokenAndRole(['participant', 'validator', 'ag
                     });
                 } else {
                     res.status(201).json({ 
-                        message: "Anotación guardada correctamente", 
+                        message: "Annotation saved successfully", 
                         annotation_id: annotation_id,
                         annotations_count: annotationCount
                     });
@@ -253,20 +231,18 @@ app.post('/api/annotations', verifyTokenAndRole(['participant', 'validator', 'ag
     });
 });
 
-// 4. Get all contests (public for all users)
 app.get('/api/contests', async (req, res) => {
     const sql = 'SELECT * FROM contests';
     db.all(sql, [], (err, contests) => {
         if (err) {
-            console.error('❌ Error al obtener contests:', err.message);
-            return res.status(500).json({ error: "Error al obtener los concursos", details: err.message });
+            console.error('❌ Error retrieving contests:', err.message);
+            return res.status(500).json({ error: "Error retrieving contests", details: err.message });
         }
 
         if (!contests || contests.length === 0) {
             return res.json([]);
         }
 
-        // Obtener imágenes para cada contest
         let processed = 0;
         const contestsWithImages = [];
 
@@ -277,7 +253,7 @@ app.get('/api/contests', async (req, res) => {
                 processed++;
                 
                 if (err) {
-                    console.error(`❌ Error obteniendo imágenes del contest ${contest.id}:`, err.message);
+                    console.error(`❌ Error retrieving images for contest ${contest.id}:`, err.message);
                     contestsWithImages.push({
                         ...contest,
                         images: []
@@ -288,10 +264,8 @@ app.get('/api/contests', async (req, res) => {
                         images: images || []
                     });
                 }
-
-                // Cuando todos los contests han sido procesados
                 if (processed === contests.length) {
-                    console.log(`✅ Devolviendo ${contestsWithImages.length} contests con imágenes`);
+                    console.log(`✅ Returning ${contestsWithImages.length} contests with images`);
                     res.json(contestsWithImages);
                 }
             });
@@ -299,30 +273,28 @@ app.get('/api/contests', async (req, res) => {
     });
 });
 
-// 5. Create a new contests with images (Only for agencies) - TODO EN UNO
 app.post('/api/contests', verifyTokenAndRole(['agency']), async (req, res) => {
     const { name, rules, objective, description, end_date, images } = req.body;
     const agency_id = req.user.userId;
 
-    console.log('📝 Creando contest:', { name, agency_id, images_count: images?.length });
+    console.log('📝 Creating contest:', { name, agency_id, images_count: images?.length });
 
     if (!name) {
-        return res.status(400).json({ error: "El nombre del concurso es requerido" });
+        return res.status(400).json({ error: "Contest name is required" });
     }
 
     const contestSql = 'INSERT INTO contests (agency_id, name, rules, objective, description, end_date) VALUES (?, ?, ?, ?, ?, ?)';
     db.run(contestSql, [agency_id, name, rules, objective, description, end_date], function(err) {
         if (err) {
-            console.error('❌ Error al crear contest:', err.message);
-            return res.status(500).json({ error: "Error al crear el concurso", details: err.message });
+            console.error('❌ Error creating contest:', err.message);
+            return res.status(500).json({ error: "Error creating contest", details: err.message });
         }
 
         const contest_id = this.lastID;
-        console.log('✅ Contest creado con ID:', contest_id);
+        console.log('✅ Contest created with ID:', contest_id);
 
-        // Si hay imágenes, insertarlas automáticamente
         if (images && Array.isArray(images) && images.length > 0) {
-            console.log('🖼️ Insertando', images.length, 'imágenes...');
+            console.log('🖼️ Inserting', images.length, 'images...');
             
             const stmt = db.prepare('INSERT INTO images (contest_id, dzi_url, metadata) VALUES (?, ?, ?)');
             
@@ -339,27 +311,25 @@ app.post('/api/contests', verifyTokenAndRole(['agency']), async (req, res) => {
                     processed++;
                     
                     if (err) {
-                        console.error(`❌ Error insertando imagen ${index}:`, err.message);
+                        console.error(`❌ Error inserting image ${index}:`, err.message);
                         errors.push(err.message);
                     } else {
                         inserted++;
-                        console.log(`✅ Imagen ${index} insertada con ID:`, this.lastID);
+                        console.log(`✅ Image ${index} inserted with ID:`, this.lastID);
                     }
-
-                    // Cuando todas las imágenes han sido procesadas
                     if (processed === images.length) {
                         stmt.finalize((finalizeErr) => {
                             if (finalizeErr) {
-                                console.error('❌ Error en finalize:', finalizeErr.message);
+                                console.error('❌ Error in finalize:', finalizeErr.message);
                                 return res.status(500).json({ 
-                                    error: "Error finalizando inserción de imágenes", 
+                                    error: "Error finalizing image insertion", 
                                     details: finalizeErr.message 
                                 });
                             }
 
-                            console.log(`✅ Total insertado: ${inserted}/${images.length}`);
+                            console.log(`✅ Total inserted: ${inserted}/${images.length}`);
                             res.status(201).json({ 
-                                message: "Concurso creado correctamente con imágenes", 
+                                message: "Contest created successfully with images", 
                                 contest_id: contest_id,
                                 images_added: inserted,
                                 errors: errors.length > 0 ? errors : undefined
@@ -369,10 +339,9 @@ app.post('/api/contests', verifyTokenAndRole(['agency']), async (req, res) => {
                 });
             });
         } else {
-            // Sin imágenes
-            console.log('ℹ️ Contest creado sin imágenes');
+            console.log('ℹ️ Contest created without images');
             res.status(201).json({ 
-                message: "Concurso creado correctamente", 
+                message: "Contest created successfully", 
                 contest_id: contest_id,
                 images_added: 0
             });
@@ -380,7 +349,6 @@ app.post('/api/contests', verifyTokenAndRole(['agency']), async (req, res) => {
     });
 });
 
-// 6. Join a contests (Only for participants)
 app.post('/api/contests/:id/join', verifyTokenAndRole(['participant']), async (req, res) => {
     const contest_id = req.params.id;
     const user_id = req.user.userId;
@@ -388,13 +356,12 @@ app.post('/api/contests/:id/join', verifyTokenAndRole(['participant']), async (r
     const sql = 'INSERT INTO participant_contest (user_id, contest_id) VALUES (?, ?)';
     db.run(sql, [user_id, contest_id], function(err) {
         if (err) {
-            return res.status(500).json({ error: "Error al unirse al concurso", error: err.message });
+            return res.status(500).json({ error: "Error joining contest", error: err.message });
         }
-        res.status(201).json({ message: "Te has unido al concurso correctamente" });
+        res.status(201).json({ message: "Successfully joined contest" });
     });
 });
 
-// 7. Get images from a contest (User has to be logged in)
 app.get('/api/contests/:id/images', verifyTokenAndRole(['participant', 'agency', 'validator']),  (req, res) => {
     const contest_id = req.params.id;
 
@@ -402,18 +369,17 @@ app.get('/api/contests/:id/images', verifyTokenAndRole(['participant', 'agency',
 
     db.all(sql, [contest_id], (err, rows) => {
         if (err) {
-            return res.status(500).json({ error: "Error al obtener las imágenes", details: err.message });
+            return res.status(500).json({ error: "Error retrieving images", details: err.message });
         }
 
         if (rows.length === 0) {
-            return res.status(404).json({ error: "No se encontraron imágenes para este concurso" });
+            return res.status(404).json({ error: "No images found for this contest" });
         }
 
         res.json(rows);
     });
 });
 
-// 8. Get current user profile (requires authentication) - Enhanced with statistics
 app.get('/api/users/me', verifyTokenAndRole(['participant', 'agency', 'validator']), async (req, res) => {
     const userId = req.user.userId;
 
@@ -427,18 +393,14 @@ app.get('/api/users/me', verifyTokenAndRole(['participant', 'agency', 'validator
 
     db.get(sql, [userId], (err, user) => {
         if (err) {
-            return res.status(500).json({ error: "Error al obtener el usuario" });
+            return res.status(500).json({ error: "Error retrieving user" });
         }
         if (!user) {
-            return res.status(404).json({ error: "Usuario no encontrado" });
+            return res.status(404).json({ error: "User not found" });
         }
-
-        // Get annotations count
         const countSql = 'SELECT COUNT(*) as count FROM annotations WHERE user_id = ?';
         db.get(countSql, [userId], (err, countRow) => {
             const annotations_count = countRow ? countRow.count : 0;
-
-            // Get validated annotations count
             const validatedSql = `
                 SELECT COUNT(*) as count 
                 FROM annotations 
@@ -446,8 +408,6 @@ app.get('/api/users/me', verifyTokenAndRole(['participant', 'agency', 'validator
             `;
             db.get(validatedSql, [userId], (err, validatedRow) => {
                 const validated_count = validatedRow ? validatedRow.count : 0;
-
-                // Get user rank
                 const rankSql = `
                     SELECT COUNT(*) + 1 as rank
                     FROM users
@@ -472,26 +432,22 @@ app.get('/api/users/me', verifyTokenAndRole(['participant', 'agency', 'validator
     });
 });
 
-
-// 9. Get specific contest with images
 app.get('/api/contests/:id', async (req, res) => {
     const contest_id = req.params.id;
 
     const contestSql = 'SELECT * FROM contests WHERE id = ?';
     db.get(contestSql, [contest_id], (err, contest) => {
         if (err) {
-            return res.status(500).json({ error: "Error al obtener el concurso" });
+            return res.status(500).json({ error: "Error retrieving contest" });
         }
         if (!contest) {
-            return res.status(404).json({ error: "Concurso no encontrado" });
+            return res.status(404).json({ error: "Contest not found" });
         }
-
-        // Get images for this contest (directo, sin datasets)
         const imagesSql = 'SELECT id, dzi_url, metadata FROM images WHERE contest_id = ?';
 
         db.all(imagesSql, [contest_id], (err, images) => {
             if (err) {
-                return res.status(500).json({ error: "Error al obtener las imágenes" });
+                return res.status(500).json({ error: "Error retrieving images" });
             }
 
             res.json({
@@ -502,7 +458,6 @@ app.get('/api/contests/:id', async (req, res) => {
     });
 });
 
-// 10. Get annotations (with filters)
 app.get('/api/annotations', verifyTokenAndRole(['participant', 'agency', 'validator']), async (req, res) => {
     const { contest_id, status, user_id } = req.query;
     
@@ -538,10 +493,8 @@ app.get('/api/annotations', verifyTokenAndRole(['participant', 'agency', 'valida
 
     db.all(sql, params, (err, rows) => {
         if (err) {
-            return res.status(500).json({ error: "Error al obtener las anotaciones", details: err.message });
+            return res.status(500).json({ error: "Error retrieving annotations", details: err.message });
         }
-
-        // Parse JSON fields
         const annotations = rows.map(row => ({
             ...row,
             annotations_data: row.annotations_data ? JSON.parse(row.annotations_data) : null,
@@ -552,41 +505,33 @@ app.get('/api/annotations', verifyTokenAndRole(['participant', 'agency', 'valida
     });
 });
 
-// 11. Validate an annotation (validators and agencies only)
 app.post('/api/annotations/:id/validate', verifyTokenAndRole(['validator', 'agency']), async (req, res) => {
     const annotation_id = req.params.id;
     const validator_id = req.user.userId;
     const { decision, comment = '' } = req.body;
 
     if (!decision || !['approved', 'rejected'].includes(decision)) {
-        return res.status(400).json({ error: "decision debe ser 'approved' o 'rejected'" });
+        return res.status(400).json({ error: "decision must be 'approved' or 'rejected'" });
     }
-
-    // Check if annotation exists
     const checkSql = 'SELECT * FROM annotations WHERE id = ?';
     db.get(checkSql, [annotation_id], (err, annotation) => {
         if (err || !annotation) {
-            return res.status(404).json({ error: "Anotación no encontrada" });
+            return res.status(404).json({ error: "Annotation not found" });
         }
-
-        // Insert validation record
         const validationSql = 'INSERT INTO validations (annotation_id, validator_id, decision, comment) VALUES (?, ?, ?, ?)';
         db.run(validationSql, [annotation_id, validator_id, decision, comment], function(err) {
             if (err) {
-                return res.status(500).json({ error: "Error al guardar la validación", details: err.message });
+                return res.status(500).json({ error: "Error saving validation", details: err.message });
             }
 
-            // Update annotation status
             const newStatus = decision === 'approved' ? 'validated' : 'rejected';
             db.run('UPDATE annotations SET status = ? WHERE id = ?', [newStatus, annotation_id]);
-
-            // Give points to user if approved (+100)
             if (decision === 'approved') {
                 db.run('UPDATE users SET total_score = total_score + 100 WHERE id = ?', [annotation.user_id]);
             }
 
             res.json({ 
-                message: "Validación guardada correctamente", 
+                message: "Validation saved successfully", 
                 validation_id: this.lastID,
                 decision: decision,
                 points_awarded: decision === 'approved' ? 100 : 0
@@ -595,7 +540,6 @@ app.post('/api/annotations/:id/validate', verifyTokenAndRole(['validator', 'agen
     });
 });
 
-// 12. Get global ranking
 app.get('/api/ranking', async (req, res) => {
     const limit = req.query.limit || 10;
 
@@ -618,16 +562,12 @@ app.get('/api/ranking', async (req, res) => {
 
     db.all(sql, [parseInt(limit)], (err, rows) => {
         if (err) {
-            return res.status(500).json({ error: "Error al obtener el ranking", details: err.message });
+            return res.status(500).json({ error: "Error retrieving ranking", details: err.message });
         }
 
         res.json(rows);
     });
 });
-
-// ELIMINADO: Las imágenes ahora se crean junto con el contest en POST /api/contests
-
-// 15. Alias endpoints for frontend compatibility (challenges = contests)
 app.get('/api/challenges', (req, res) => {
     req.url = '/api/contests';
     app._router.handle(req, res);
@@ -643,8 +583,6 @@ app.get('/api/challenges/:id', (req, res) => {
     app._router.handle(req, res);
 });
 
-
-// DEBUG: Ver todos los usuarios (temporal)
 app.get('/api/debug/users', (req, res) => {
     const sql = `
         SELECT 
@@ -666,7 +604,6 @@ app.get('/api/debug/users', (req, res) => {
     });
 });
 
-// DEBUG: Ver todos los contests (temporal)
 app.get('/api/debug/contests', (req, res) => {
     const sql = `
         SELECT * FROM contests
@@ -703,9 +640,9 @@ app.get('/api/debug/annotations', (req, res) => {
 });
 
 app.get('/', (req, res) => {
-    res.send('¡El servidor está funcionando!');
+    res.send('Server is running!');
 });
 
 app.listen(port, () => {
-    console.log(`Servidor corriendo en http://localhost:${port}`);
+    console.log(`Server running on http://localhost:${port}`);
 });

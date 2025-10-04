@@ -3,9 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../lib/api';
 
-/**
- * Página de perfil de usuario
- */
 const Profile = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
@@ -20,15 +17,12 @@ const Profile = () => {
     const loadUserData = async () => {
         try {
             const [allAnnotations, ranking] = await Promise.all([
-                api.getAnnotations(), // Obtener todas las anotaciones
+                api.getAnnotations(),
                 api.getRanking()
             ]);
 
-            // Filtrar anotaciones del usuario
             const userAnnotations = allAnnotations.filter(a => a.userId === user.id);
             setAnnotations(userAnnotations);
-
-            // Encontrar posición en ranking
             const userRank = ranking.find(r => r.userId === user.id);
 
             setStats({
@@ -40,7 +34,7 @@ const Profile = () => {
                 rank: userRank ? userRank.rank : 'N/A'
             });
         } catch (error) {
-            console.error('Error cargando datos:', error);
+            console.error('Error loading data:', error);
         } finally {
             setLoading(false);
         }
@@ -48,12 +42,12 @@ const Profile = () => {
 
     const getRoleBadge = () => {
         const roles = {
-            participant: { label: 'Participante', color: 'var(--muted)' },
-            user: { label: 'Usuario', color: 'var(--muted)' },
-            validator: { label: 'Validador', color: 'var(--primary)' },
-            agency: { label: 'Agencia', color: 'var(--accent)' }
+            explorer: { label: 'Explorer', color: 'var(--muted)' },
+            participant: { label: 'Participant', color: 'var(--muted)' },
+            validator: { label: 'Validator', color: 'var(--primary)' },
+            agency: { label: 'Agency', color: 'var(--accent)' }
         };
-        return roles[user.role] || roles.user;
+        return roles[user.role] || roles.explorer;
     };
 
     const handleLogout = () => {
@@ -70,7 +64,7 @@ const Profile = () => {
                 height: '100%',
                 color: 'white'
             }}>
-                Cargando perfil...
+                Loading profile...
             </div>
         );
     }
@@ -84,7 +78,6 @@ const Profile = () => {
             margin: '0 auto',
             color: 'white'
         }}>
-            {/* Header */}
             <div className="glass" style={{
                 padding: '32px',
                 borderRadius: '12px',
@@ -155,11 +148,10 @@ const Profile = () => {
                         e.currentTarget.style.transform = 'translateY(0)';
                     }}
                 >
-                    🚪 Cerrar Sesión
+                    🚪 Sign Out
                 </button>
             </div>
 
-            {/* Stats Grid */}
             <div style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -175,7 +167,7 @@ const Profile = () => {
                         {stats.score}
                     </div>
                     <div style={{ fontSize: '14px', color: 'var(--muted-foreground)' }}>
-                        Puntos Totales
+                        Total Points
                     </div>
                 </div>
 
@@ -188,7 +180,7 @@ const Profile = () => {
                         #{stats.rank}
                     </div>
                     <div style={{ fontSize: '14px', color: 'var(--muted-foreground)' }}>
-                        Ranking Global
+                        Global Ranking
                     </div>
                 </div>
 
@@ -201,7 +193,7 @@ const Profile = () => {
                         {stats.totalAnnotations}
                     </div>
                     <div style={{ fontSize: '14px', color: 'var(--muted-foreground)' }}>
-                        Anotaciones Totales
+                        Total Annotations
                     </div>
                 </div>
 
@@ -214,14 +206,13 @@ const Profile = () => {
                         {stats.validated}
                     </div>
                     <div style={{ fontSize: '14px', color: 'var(--muted-foreground)' }}>
-                        Validadas
+                        Validated
                     </div>
                 </div>
             </div>
 
-            {/* Annotations History */}
             <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '20px' }}>
-                Historial de Anotaciones
+                Annotation History
             </h2>
 
             {annotations.length === 0 ? (
@@ -232,10 +223,10 @@ const Profile = () => {
                 }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
                     <div style={{ fontSize: '18px', fontWeight: '600' }}>
-                        Aún no has hecho anotaciones
+                        You haven't made any annotations yet
                     </div>
                     <div style={{ fontSize: '14px', color: 'var(--muted-foreground)', marginTop: '8px' }}>
-                        ¡Empieza a contribuir en los challenges!
+                        Start contributing to challenges!
                     </div>
                 </div>
             ) : (
@@ -279,9 +270,9 @@ const Profile = () => {
                                             annotation.status === 'rejected' ? '1px solid var(--destructive)' :
                                                 '1px solid var(--accent)'
                                 }}>
-                                    {annotation.status === 'validated' ? '✓ Validada' :
-                                        annotation.status === 'rejected' ? '✗ Rechazada' :
-                                            '⏳ Pendiente'}
+                                    {annotation.status === 'validated' ? '✓ Validated' :
+                                        annotation.status === 'rejected' ? '✗ Rejected' :
+                                            '⏳ Pending'}
                                 </span>
                             </div>
                         </div>

@@ -4,7 +4,7 @@ const { randomUUID } = require('crypto');
 const db = new sqlite3.Database('database.db');
 
 db.serialize(() => {
-    console.log('Conectando a la base de datos SQLite');
+    console.log('Connecting to SQLite database');
 
     db.run(`
         CREATE TABLE IF NOT EXISTS users (
@@ -64,7 +64,7 @@ db.serialize(() => {
         user_id TEXT,
         contest_id INTEGER,
         score INTEGER DEFAULT 0,
-        union_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         PRIMARY KEY (user_id, contest_id),
         FOREIGN KEY (user_id) REFERENCES users(id),
         FOREIGN KEY (contest_id) REFERENCES contests(id)
@@ -89,7 +89,6 @@ db.serialize(() => {
         FOREIGN KEY (validator_id) REFERENCES users(id)
     )`);
 
-    // Insert default roles
     const roles = ['participant', 'agency', 'validator'];
     const stmt = db.prepare('INSERT OR IGNORE INTO roles (role_name) VALUES (?)');
 
@@ -98,46 +97,39 @@ db.serialize(() => {
     });
 
     stmt.finalize(async () => {
-        console.log('Roles insertados correctamente');
-        
-        // Insertar usuario validador de prueba
+        console.log('Roles inserted successfully');
         const validatorId = 'validator-' + randomUUID();
         const validatorPassword = await bcrypt.hash('validator123', 10);
         
-        // Verificar si el usuario ya existe
         db.get('SELECT id FROM users WHERE email = ?', ['validator@test.com'], (err, existingUser) => {
             if (!existingUser) {
-                // Insertar usuario
                 db.run(
                     'INSERT INTO users (id, name, email, password, total_score) VALUES (?, ?, ?, ?, ?)',
-                    [validatorId, 'Validador de Prueba', 'validator@test.com', validatorPassword, 500],
+                    [validatorId, 'Test Validator', 'validator@test.com', validatorPassword, 500],
                     function(err) {
                         if (err) {
-                            console.error('❌ Error insertando usuario validador:', err.message);
+                            console.error('❌ Error inserting validator user:', err.message);
                             return;
                         }
                         
-                        console.log('✅ Usuario validador creado');
-                        
-                        // Obtener ID del rol validator
+                        console.log('✅ Validator user created');
                         db.get('SELECT id FROM roles WHERE role_name = ?', ['validator'], (err, roleRow) => {
                             if (err || !roleRow) {
-                                console.error('❌ Error obteniendo rol validator');
+                                console.error('❌ Error retrieving validator role');
                                 return;
                             }
                             
-                            // Asignar rol al usuario
                             db.run(
                                 'INSERT INTO users_roles (user_id, role_id) VALUES (?, ?)',
                                 [validatorId, roleRow.id],
                                 function(err) {
                                     if (err) {
-                                        console.error('❌ Error asignando rol:', err.message);
+                                        console.error('❌ Error assigning role:', err.message);
                                         return;
                                     }
                                     
-                                    console.log('✅ Rol validator asignado');
-                                    console.log('📝 Usuario de prueba:');
+                                    console.log('✅ Validator role assigned');
+                                    console.log('📝 Test user:');
                                     console.log('   Email: validator@test.com');
                                     console.log('   Password: validator123');
                                 }
@@ -146,12 +138,12 @@ db.serialize(() => {
                     }
                 );
             } else {
-                console.log('ℹ️  Usuario validador ya existe');
+                console.log('ℹ️  Validator user already exists');
             }
         });
     });
 
-    console.log('Tablas creadas correctamente');
+    console.log('Tables created successfully');
 });
 
 module.exports = db; 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useToolbox } from '../context/ToolboxContext';
 import { useDraggable } from '../hooks/useDraggable';
-import { PiPaintBrush, PiEraser, PiArrowsOut } from 'react-icons/pi';
+import { PiPaintBrush, PiArrowsOut, PiWrench, PiTrash } from 'react-icons/pi';
+import ConfirmModal from './ConfirmModal';
 
 const MinimalToolbox = () => {
     const {
@@ -16,6 +17,7 @@ const MinimalToolbox = () => {
     const [isMinimized, setIsMinimized] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
     const [strokeCount, setStrokeCount] = useState(0);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     // Actualizar contador de trazos
     useEffect(() => {
@@ -32,12 +34,12 @@ const MinimalToolbox = () => {
     }, []);
 
     // Hook para hacer el toolbox arrastrable
-    const { elementRef, draggableStyle, handleMouseDown } = useDraggable('minimal-toolbox', { x: window.innerWidth - 240, y: 20 });
+    const initialX = window.innerWidth > 300 ? window.innerWidth - 260 : 20;
+    const { elementRef, draggableStyle, handleMouseDown } = useDraggable('minimal-toolbox', { x: initialX, y: 100 });
 
     const tools = [
-        { id: 'brush', label: 'Pincel', icon: PiPaintBrush },
-        { id: 'erase', label: 'Borrar', icon: PiEraser },
-        { id: 'move', label: 'Mover', icon: PiArrowsOut }
+        { id: 'brush', label: 'Brush', icon: PiPaintBrush },
+        { id: 'move', label: 'Move', icon: PiArrowsOut }
     ];
 
     const handleClear = () => {
@@ -45,8 +47,11 @@ const MinimalToolbox = () => {
             return; // No hay nada que limpiar
         }
 
-        const confirmed = window.confirm(`¿Borrar ${strokeCount} ${strokeCount === 1 ? 'trazo' : 'trazos'}?`);
-        if (confirmed && window.clearCanvas) {
+        setShowConfirmModal(true);
+    };
+
+    const confirmClear = () => {
+        if (window.clearCanvas) {
             window.clearCanvas();
             setStrokeCount(0);
         }
@@ -64,14 +69,15 @@ const MinimalToolbox = () => {
                     padding: '12px',
                     borderRadius: '12px',
                     border: '1px solid var(--widget-border)',
-                    transition: 'all 0.18s ease'
+                    transition: 'all 0.18s ease',
+                    zIndex: 10001
                 }}
                 onClick={() => setIsMinimized(false)}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 onMouseDown={handleMouseDown}
             >
-                <span style={{ fontSize: '24px' }}>🛠️</span>
+                <PiWrench size={24} color="white" />
             </div>
         );
     }
@@ -90,7 +96,8 @@ const MinimalToolbox = () => {
                 padding: '16px',
                 minWidth: '200px',
                 boxShadow: '0 6px 20px rgba(0, 0, 0, 0.3)',
-                transition: 'all 0.18s ease'
+                transition: 'all 0.18s ease',
+                zIndex: 10001
             }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
@@ -113,7 +120,7 @@ const MinimalToolbox = () => {
                         color: 'white',
                         fontSize: '16px',
                         fontWeight: '600'
-                    }}>Herramientas</h3>
+                    }}>Tools</h3>
                     {strokeCount > 0 && (
                         <span style={{
                             background: '#6ccff6',
@@ -142,12 +149,11 @@ const MinimalToolbox = () => {
                         pointerEvents: 'auto',
                         zIndex: 10
                     }}
-                    title="Minimizar"
+                    title="Minimize"
                 >
                     ─
                 </button>
             </div>
-            {/* Herramientas */}
             <div style={{ marginBottom: '16px' }}>
                 <div style={{ display: 'flex', gap: '8px' }}>
                     {tools.map(tool => (
@@ -176,7 +182,6 @@ const MinimalToolbox = () => {
                 </div>
             </div>
 
-            {/* Controles del pincel */}
             {(selectedTool === 'brush' || selectedTool === 'erase') && (
                 <div style={{ marginBottom: '16px' }}>
                     <div style={{
@@ -185,17 +190,16 @@ const MinimalToolbox = () => {
                         marginBottom: '8px',
                         fontWeight: '500'
                     }}>
-                        {selectedTool === 'brush' ? 'Pincel' : 'Borrador'}
+                        {selectedTool === 'brush' ? 'Brush' : 'Eraser'}
                     </div>
 
-                    {/* Tamaño */}
                     <div style={{ marginBottom: '12px' }}>
                         <div style={{
                             fontSize: '11px',
                             color: 'var(--muted-foreground)',
                             marginBottom: '4px'
                         }}>
-                            Tamaño: {brushSize}px
+                            Size: {brushSize}px
                         </div>
                         <input
                             type="range"
@@ -214,14 +218,13 @@ const MinimalToolbox = () => {
                         />
                     </div>
 
-                    {/* Opacidad */}
                     <div>
                         <div style={{
                             fontSize: '11px',
                             color: 'var(--muted-foreground)',
                             marginBottom: '4px'
                         }}>
-                            Opacidad: {Math.round(brushOpacity * 100)}%
+                            Opacity: {Math.round(brushOpacity * 100)}%
                         </div>
                         <input
                             type="range"
@@ -243,7 +246,6 @@ const MinimalToolbox = () => {
                 </div>
             )}
 
-            {/* Botón limpiar */}
             <div>
                 <button
                     onClick={handleClear}
@@ -257,12 +259,27 @@ const MinimalToolbox = () => {
                         cursor: 'pointer',
                         fontSize: '12px',
                         fontWeight: '500',
-                        transition: 'all 0.2s ease'
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
                     }}
                 >
-                    🗑️ Limpiar Canvas
+                    <PiTrash size={14} />
+                    Clear Canvas
                 </button>
             </div>
+
+            <ConfirmModal
+                isOpen={showConfirmModal}
+                onClose={() => setShowConfirmModal(false)}
+                onConfirm={confirmClear}
+                title="Delete strokes?"
+                message={`${strokeCount} ${strokeCount === 1 ? 'stroke' : 'strokes'} will be deleted. This action cannot be undone.`}
+                confirmText="Delete"
+                cancelText="Cancel"
+            />
         </div>
     );
 };

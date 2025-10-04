@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-/**
- * Página de login
- */
 const Login = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -23,7 +20,7 @@ const Login = () => {
         if (result.success) {
             navigate('/');
         } else {
-            setError(result.error || 'Error al iniciar sesión');
+            setError(result.error || 'Error signing in');
         }
 
         setLoading(false);
@@ -50,7 +47,7 @@ const Login = () => {
                     color: 'white',
                     textAlign: 'center'
                 }}>
-                    Iniciar Sesión
+                    Sign In
                 </h2>
                 <p style={{
                     fontSize: '14px',
@@ -58,7 +55,7 @@ const Login = () => {
                     textAlign: 'center',
                     marginBottom: '32px'
                 }}>
-                    Ingresa tus credenciales para continuar
+                    Enter your credentials to continue
                 </p>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -76,7 +73,7 @@ const Login = () => {
                             type="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
-                            placeholder="tu@email.com"
+                            placeholder="your@email.com"
                             required
                             style={{
                                 width: '100%',
@@ -98,7 +95,7 @@ const Login = () => {
                             marginBottom: '8px',
                             fontWeight: '500'
                         }}>
-                            Contraseña
+                            Password
                         </label>
                         <input
                             type="password"
@@ -147,7 +144,7 @@ const Login = () => {
                             opacity: loading ? 0.6 : 1
                         }}
                     >
-                        {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+                        {loading ? 'Signing in...' : 'Sign In'}
                     </button>
                 </form>
 
@@ -157,7 +154,7 @@ const Login = () => {
                     fontSize: '14px',
                     color: 'var(--muted-foreground)'
                 }}>
-                    ¿No tienes cuenta?{' '}
+                    Don't have an account?{' '}
                     <span
                         onClick={() => navigate('/register')}
                         style={{
@@ -166,25 +163,8 @@ const Login = () => {
                             fontWeight: '500'
                         }}
                     >
-                        Regístrate aquí
+                        Sign up here
                     </span>
-                </div>
-
-                {/* Demo credentials */}
-                <div style={{
-                    marginTop: '24px',
-                    padding: '16px',
-                    background: 'rgba(108, 207, 246, 0.1)',
-                    borderRadius: '8px',
-                    fontSize: '12px',
-                    color: 'var(--muted-foreground)'
-                }}>
-                    <div style={{ fontWeight: '600', marginBottom: '8px', color: 'var(--primary)' }}>
-                        Credenciales de prueba:
-                    </div>
-                    <div>Usuario: ana@example.com / demo123</div>
-                    <div>Validador: carlos@example.com / demo123</div>
-                    <div>Agencia: maria@example.com / demo123</div>
                 </div>
             </div>
         </div>

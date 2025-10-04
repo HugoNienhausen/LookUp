@@ -16,7 +16,17 @@ export const useDraggable = (widgetId, initialPosition = { x: 0, y: 0 }) => {
     if (savedPosition) {
       try {
         const parsed = JSON.parse(savedPosition);
-        setPosition(parsed);
+        // Validar que la posición guardada esté dentro de límites razonables
+        const maxX = window.innerWidth - 100;
+        const maxY = window.innerHeight - 100;
+        
+        if (parsed.x >= 0 && parsed.x <= maxX && parsed.y >= 0 && parsed.y <= maxY) {
+          setPosition(parsed);
+        } else {
+          // Si está fuera de límites, usar posición inicial
+          console.warn(`Posición guardada fuera de límites para ${widgetId}, usando inicial`);
+          localStorage.removeItem(`widget-position-${widgetId}`);
+        }
       } catch (error) {
         console.warn(`Error cargando posición de widget ${widgetId}:`, error);
       }

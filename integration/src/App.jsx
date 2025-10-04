@@ -11,10 +11,6 @@ import Validator from './routes/Validator';
 import Agency from './routes/Agency';
 import Profile from './routes/Profile';
 
-/**
- * Componente principal de la aplicación
- * Maneja el enrutamiento y la estructura general
- */
 function App() {
     const { user } = useAuth();
 
@@ -25,7 +21,7 @@ function App() {
 
                 <main style={{
                     flex: 1,
-                    overflow: 'hidden',
+                    overflow: 'auto',
                     position: 'relative',
                     height: '100vh'
                 }}>

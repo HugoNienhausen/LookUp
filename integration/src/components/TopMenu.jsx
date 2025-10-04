@@ -1,16 +1,15 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-/**
- * Menú superior con glassmorphism
- * Muestra logo, búsqueda de coordenadas, y perfil de usuario
- */
 const TopMenu = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [isHovered, setIsHovered] = useState(false);
     const [showDropdown, setShowDropdown] = useState(false);
+    
+    const isHomePage = location.pathname === '/';
 
     const handleLogout = () => {
         logout();
@@ -20,12 +19,12 @@ const TopMenu = () => {
     const getRoleBadge = () => {
         if (!user) return null;
         const roleLabels = {
-            participant: 'Participante',
-            user: 'Usuario',
-            validator: 'Validador',
-            agency: 'Agencia'
+            explorer: 'Explorer',
+            participant: 'Participant',
+            validator: 'Validator',
+            agency: 'Agency'
         };
-        return roleLabels[user.role] || 'Usuario';
+        return roleLabels[user.role] || 'Explorer';
     };
 
     return (
@@ -43,8 +42,8 @@ const TopMenu = () => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0 24px',
-                    opacity: isHovered ? 0.92 : 0.18,
-                    transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
+                    opacity: isHomePage ? 0.92 : (isHovered ? 0.92 : 0.18),
+                    transform: isHomePage ? 'translateY(-4px)' : (isHovered ? 'translateY(-4px)' : 'translateY(0)'),
                 }}
             >
                 {/* Logo */}
@@ -80,11 +79,10 @@ const TopMenu = () => {
                             color: 'var(--muted-foreground)',
                             opacity: 0.8,
                             margin: 0
-                        }}>Explora • Anota • Valida</p>
+                        }}>Explore • Annotate • Validate</p>
                     </div>
                 </div>
 
-                {/* Navigation */}
                 <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
                     <button
                         onClick={() => navigate('/')}
@@ -120,7 +118,7 @@ const TopMenu = () => {
                             onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
                             onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
                         >
-                            Validar
+                            Validate
                         </button>
                     )}
 
@@ -140,12 +138,11 @@ const TopMenu = () => {
                             onMouseEnter={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.2)'}
                             onMouseLeave={(e) => e.target.style.background = 'rgba(255, 255, 255, 0.1)'}
                         >
-                            Agencia
+                            Agency
                         </button>
                     )}
                 </div>
 
-                {/* User menu */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                     {user ? (
                         <div style={{ position: 'relative' }}>
@@ -227,7 +224,7 @@ const TopMenu = () => {
                                         onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
                                         onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                     >
-                                        Mi Perfil
+                                        My Profile
                                     </button>
                                     <button
                                         onClick={() => {
@@ -247,7 +244,7 @@ const TopMenu = () => {
                                         onMouseEnter={(e) => e.target.style.background = 'rgba(255,255,255,0.1)'}
                                         onMouseLeave={(e) => e.target.style.background = 'transparent'}
                                     >
-                                        Cerrar Sesión
+                                        Sign Out
                                     </button>
                                 </div>
                             )}
@@ -266,7 +263,7 @@ const TopMenu = () => {
                                     fontSize: '14px'
                                 }}
                             >
-                                Iniciar Sesión
+                                Sign In
                             </button>
                             <button
                                 onClick={() => navigate('/register')}
@@ -281,7 +278,7 @@ const TopMenu = () => {
                                     fontWeight: '500'
                                 }}
                             >
-                                Registrarse
+                                Sign Up
                             </button>
                         </>
                     )}

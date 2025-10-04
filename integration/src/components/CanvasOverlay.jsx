@@ -22,18 +22,8 @@ const CanvasOverlay = () => {
         const resizeCanvas = () => {
             const container = canvas.parentElement;
             if (container) {
-                const tempCanvas = document.createElement('canvas');
-                const tempCtx = tempCanvas.getContext('2d');
-                tempCanvas.width = canvas.width;
-                tempCanvas.height = canvas.height;
-                tempCtx.drawImage(canvas, 0, 0);
-
                 canvas.width = container.offsetWidth;
                 canvas.height = container.offsetHeight;
-
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(tempCanvas, 0, 0);
-
                 console.log('🖼️ Canvas redimensionado:', canvas.width, 'x', canvas.height);
             }
         };
@@ -69,7 +59,14 @@ const CanvasOverlay = () => {
     const canvasToImageCoords = useCallback((canvasPoint) => {
         try {
             const viewer = getViewer();
-            if (!viewer || !viewer.world.getItemCount()) return null;
+            if (!viewer) {
+                console.warn('⚠️ Viewer no disponible');
+                return null;
+            }
+            if (!viewer.world.getItemCount()) {
+                console.warn('⚠️ No hay items en el viewer');
+                return null;
+            }
 
             // Convertir a coordenadas del viewport de OpenSeadragon
             const viewportPoint = viewer.viewport.pointFromPixel(
@@ -84,47 +81,112 @@ const CanvasOverlay = () => {
             const imageSize = tiledImage.getContentSize();
 
             // Normalizar entre 0 y 1
-            return {
+            const normalized = {
                 x: imagePoint.x / imageSize.x,
                 y: imagePoint.y / imageSize.y
             };
+            
+            return normalized;
         } catch (error) {
-            console.error('Error convirtiendo coordenadas:', error);
+            console.error('❌ Error convirtiendo coordenadas:', error);
             return null;
         }
     }, []);
 
-    // Dibujar punto
-    const drawPoint = useCallback((point, size = brushSize, opacity = brushOpacity) => {
+    // Convertir coordenadas normalizadas de imagen a píxeles del canvas
+    const imageToCanvasCoords = useCallback((imagePoint) => {
+        try {
+            const viewer = getViewer();
+            if (!viewer || !viewer.world.getItemCount()) return null;
+
+            const tiledImage = viewer.world.getItemAt(0);
+            const imageSize = tiledImage.getContentSize();
+
+            // Des-normalizar (0-1 → píxeles de imagen)
+            const imageCoords = new OpenSeadragon.Point(
+                imagePoint.x * imageSize.x,
+                imagePoint.y * imageSize.y
+            );
+
+            // Convertir a viewport
+            const viewportPoint = viewer.viewport.imageToViewportCoordinates(imageCoords);
+
+            // Convertir a píxeles del canvas
+            const canvasPoint = viewer.viewport.pixelFromPoint(viewportPoint);
+
+            return canvasPoint;
+        } catch (error) {
+            console.error('Error convirtiendo coordenadas de imagen a canvas:', error);
+            return null;
+        }
+    }, []);
+
+    // Redibujar todos los trazos guardados en el canvas
+    const redrawStrokes = useCallback(() => {
         const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const viewer = getViewer();
+        if (!viewer || !viewer.world.getItemCount()) return;
+
         const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.globalAlpha = opacity;
-        ctx.globalCompositeOperation = selectedTool === 'erase' ? 'destination-out' : 'source-over';
-        ctx.fillStyle = '#6ccff6';
+        // Dibujar cada trazo guardado
+        strokes.forEach((stroke, index) => {
+            if (!stroke || !stroke.points || stroke.points.length === 0) {
+                return;
+            }
 
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, size / 2, 0, Math.PI * 2);
-        ctx.fill();
-    }, [selectedTool, brushSize, brushOpacity]);
+            ctx.globalAlpha = stroke.style?.opacity || 0.8;
+            ctx.strokeStyle = stroke.style?.color || '#6ccff6';
+            ctx.lineWidth = stroke.style?.size || 12;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
 
-    // Dibujar línea
-    const drawLine = useCallback((from, to, size = brushSize, opacity = brushOpacity) => {
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+            ctx.beginPath();
 
-        ctx.globalAlpha = opacity;
-        ctx.globalCompositeOperation = selectedTool === 'erase' ? 'destination-out' : 'source-over';
-        ctx.strokeStyle = '#6ccff6';
-        ctx.lineWidth = size;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
+            // Convertir todos los puntos a coordenadas del canvas
+            const canvasPoints = stroke.points
+                .map(p => imageToCanvasCoords(p))
+                .filter(p => p !== null);
 
-        ctx.beginPath();
-        ctx.moveTo(from.x, from.y);
-        ctx.lineTo(to.x, to.y);
-        ctx.stroke();
-    }, [selectedTool, brushSize, brushOpacity]);
+            if (canvasPoints.length > 0) {
+                ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y);
+
+                for (let i = 1; i < canvasPoints.length; i++) {
+                    ctx.lineTo(canvasPoints[i].x, canvasPoints[i].y);
+                }
+
+                ctx.stroke();
+            }
+        });
+
+        // Si hay un trazo en progreso, dibujarlo también
+        if (currentStrokeRef.current && currentStrokeRef.current.points.length > 0) {
+            ctx.globalAlpha = currentStrokeRef.current.style?.opacity || 0.8;
+            ctx.strokeStyle = currentStrokeRef.current.style?.color || '#6ccff6';
+            ctx.lineWidth = currentStrokeRef.current.style?.size || 12;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+
+            const currentCanvasPoints = currentStrokeRef.current.points
+                .map(p => imageToCanvasCoords(p))
+                .filter(p => p !== null);
+
+            if (currentCanvasPoints.length > 0) {
+                ctx.moveTo(currentCanvasPoints[0].x, currentCanvasPoints[0].y);
+
+                for (let i = 1; i < currentCanvasPoints.length; i++) {
+                    ctx.lineTo(currentCanvasPoints[i].x, currentCanvasPoints[i].y);
+                }
+
+                ctx.stroke();
+            }
+        }
+    }, [strokes, imageToCanvasCoords]);
 
     // Manejar pan del viewer
     const handlePan = useCallback((e) => {
@@ -155,14 +217,15 @@ const CanvasOverlay = () => {
         const point = getMousePos(e);
 
         if (e.button === 0) { // Click izquierdo
-            if (selectedTool === 'brush' || selectedTool === 'erase') {
-                // Pincel/Borrador: click izquierdo pinta/borra
-                isDrawingRef.current = true;
-                lastPointRef.current = point;
-
+            if (selectedTool === 'brush') {
+                // Pincel: click izquierdo pinta
                 // Iniciar un nuevo trazo
                 const imageCoords = canvasToImageCoords(point);
-                if (imageCoords) {
+                if (imageCoords && imageCoords.x !== null && imageCoords.y !== null) {
+                    // Solo activar el dibujo si se pudieron obtener coordenadas válidas
+                    isDrawingRef.current = true;
+                    lastPointRef.current = point;
+                    
                     currentStrokeRef.current = {
                         id: `stroke_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
                         type: selectedTool,
@@ -175,9 +238,12 @@ const CanvasOverlay = () => {
                         timestamp: new Date().toISOString()
                     };
                     console.log('🎨 Nuevo trazo iniciado:', currentStrokeRef.current.id);
+                    
+                    // Redibujar para mostrar el primer punto
+                    redrawStrokes();
+                } else {
+                    console.warn('⚠️ No se pudo obtener coordenadas de imagen válidas - Asegúrate de que la imagen esté completamente cargada');
                 }
-
-                drawPoint(point);
             } else if (selectedTool === 'move') {
                 // Mover: click izquierdo arrastra
                 isPanningRef.current = true;
@@ -189,7 +255,7 @@ const CanvasOverlay = () => {
             isPanningRef.current = true;
             lastPanPointRef.current = point;
         }
-    }, [selectedTool, getMousePos, drawPoint, brushSize, brushOpacity, canvasToImageCoords]);
+    }, [selectedTool, getMousePos, canvasToImageCoords, brushSize, brushOpacity, redrawStrokes]);
 
     const handleMouseMove = useCallback((e) => {
         const point = getMousePos(e);
@@ -201,26 +267,29 @@ const CanvasOverlay = () => {
         }
 
         // Manejo de dibujo
-        if (isDrawingRef.current && (selectedTool === 'brush' || selectedTool === 'erase')) {
+        if (isDrawingRef.current && selectedTool === 'brush') {
             if (lastPointRef.current) {
-                drawLine(lastPointRef.current, point);
-
                 // Agregar punto al trazo actual
                 const imageCoords = canvasToImageCoords(point);
-                if (currentStrokeRef.current && imageCoords) {
+                if (currentStrokeRef.current && imageCoords && imageCoords.x !== null && imageCoords.y !== null) {
                     currentStrokeRef.current.points.push(imageCoords);
+                    // Redibujar para mostrar el trazo en progreso
+                    redrawStrokes();
                 }
             }
             lastPointRef.current = point;
         }
-    }, [selectedTool, getMousePos, drawLine, handlePan, canvasToImageCoords]);
+    }, [selectedTool, getMousePos, handlePan, canvasToImageCoords, redrawStrokes]);
 
     const handleMouseUp = useCallback(() => {
         // Guardar el trazo completado
         if (isDrawingRef.current && currentStrokeRef.current) {
             if (currentStrokeRef.current.points.length > 0) {
-                setStrokes(prev => [...prev, currentStrokeRef.current]);
-                console.log('✅ Trazo guardado:', currentStrokeRef.current.id, `(${currentStrokeRef.current.points.length} puntos)`);
+                // Capturar el trazo en una variable local ANTES de establecer el ref a null
+                const completedStroke = currentStrokeRef.current;
+                console.log('✅ Trazo guardado:', completedStroke.id, `(${completedStroke.points.length} puntos)`);
+                
+                setStrokes(prev => [...prev, completedStroke]);
             }
             currentStrokeRef.current = null;
         }
@@ -263,6 +332,7 @@ const CanvasOverlay = () => {
         const ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         setStrokes([]);
+        currentStrokeRef.current = null;
         console.log('🧹 Canvas limpiado');
     }, []);
 
@@ -281,7 +351,9 @@ const CanvasOverlay = () => {
 
     // Log de trazos actuales
     useEffect(() => {
-        console.log('Trazos totales:', strokes.length);
+        if (strokes.length > 0) {
+            console.log(`📝 Trazos en canvas: ${strokes.length}`);
+        }
     }, [strokes]);
 
     // Establecer cursor según herramienta
@@ -292,9 +364,6 @@ const CanvasOverlay = () => {
         switch (selectedTool) {
             case 'brush':
                 canvas.style.cursor = 'crosshair';
-                break;
-            case 'erase':
-                canvas.style.cursor = 'not-allowed';
                 break;
             case 'move':
                 canvas.style.cursor = isPanningRef.current ? 'grabbing' : 'grab';
@@ -312,24 +381,30 @@ const CanvasOverlay = () => {
         lastPanPointRef.current = null;
     }, [selectedTool]);
 
-    // Sincronizar canvas con zoom del viewer
+    // Redibujar cuando cambien los strokes
+    useEffect(() => {
+        redrawStrokes();
+    }, [strokes, redrawStrokes]);
+
+    // Sincronizar canvas con zoom/pan del viewer - REDIBUJAR
     useEffect(() => {
         const viewer = getViewer();
         if (!viewer) return;
 
-        const handleZoom = () => {
-            // El canvas se redimensiona automáticamente con el ResizeObserver
-            console.log('Zoom actualizado');
+        const handleUpdate = () => {
+            redrawStrokes();
         };
 
-        viewer.addHandler('zoom', handleZoom);
-        viewer.addHandler('pan', handleZoom);
+        viewer.addHandler('zoom', handleUpdate);
+        viewer.addHandler('pan', handleUpdate);
+        viewer.addHandler('update-viewport', handleUpdate);
 
         return () => {
-            viewer.removeHandler('zoom', handleZoom);
-            viewer.removeHandler('pan', handleZoom);
+            viewer.removeHandler('zoom', handleUpdate);
+            viewer.removeHandler('pan', handleUpdate);
+            viewer.removeHandler('update-viewport', handleUpdate);
         };
-    }, []);
+    }, [redrawStrokes]);
 
     return (
         <canvas

@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import * as api from '../lib/api';
 
-/**
- * Página de Agencia - Crear challenges
- */
 const Agency = () => {
     const { user } = useAuth();
     const [title, setTitle] = useState('');
@@ -19,11 +16,10 @@ const Agency = () => {
         setSuccess(false);
 
         try {
-            // Filtrar URLs vacías
             const validUrls = imageUrls.filter(url => url.trim() !== '');
 
             if (validUrls.length === 0) {
-                alert('Debes proporcionar al menos una URL de imagen');
+                alert('You must provide at least one image URL');
                 setCreating(false);
                 return;
             }
@@ -41,8 +37,8 @@ const Agency = () => {
                 title,
                 description,
                 images,
-                rules: 'Anota todas las características visibles',
-                objective: 'Identificación y clasificación de elementos',
+                rules: 'Annotate all visible features',
+                objective: 'Identification and classification of elements',
                 endDate: null
             };
 
@@ -56,10 +52,10 @@ const Agency = () => {
             setTimeout(() => setSuccess(false), 5000);
 
         } catch (error) {
-            console.error('Error creando challenge:', error);
-            const errorMsg = error.response?.data?.error || 'Error al crear el challenge';
+            console.error('Error creating challenge:', error);
+            const errorMsg = error.response?.data?.error || 'Error creating challenge';
             alert(errorMsg);
-        } finally {
+        } finally{
             setCreating(false);
         }
     };
@@ -87,14 +83,14 @@ const Agency = () => {
             color: 'white'
         }}>
             <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '12px' }}>
-                🏢 Panel de Agencia
+                🏢 Agency Panel
             </h1>
             <p style={{
                 fontSize: '16px',
                 color: 'var(--muted-foreground)',
                 marginBottom: '32px'
             }}>
-                Crea nuevos challenges para la comunidad
+                Create new challenges for the community
             </p>
 
             {success && (
@@ -107,7 +103,7 @@ const Agency = () => {
                     marginBottom: '24px',
                     fontSize: '14px'
                 }}>
-                    ✓ Challenge creado exitosamente
+                    ✓ Challenge created successfully
                 </div>
             )}
 
@@ -118,7 +114,6 @@ const Agency = () => {
                 flexDirection: 'column',
                 gap: '24px'
             }}>
-                {/* Title */}
                 <div>
                     <label style={{
                         display: 'block',
@@ -126,13 +121,13 @@ const Agency = () => {
                         marginBottom: '8px',
                         fontWeight: '500'
                     }}>
-                        Título del Challenge
+                        Challenge Title
                     </label>
                     <input
                         type="text"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Ej: Cráteres de Marte - Región Syrtis Major"
+                        placeholder="Ex: Mars Craters - Syrtis Major Region"
                         required
                         style={{
                             width: '100%',
@@ -146,7 +141,6 @@ const Agency = () => {
                     />
                 </div>
 
-                {/* Description */}
                 <div>
                     <label style={{
                         display: 'block',
@@ -154,12 +148,12 @@ const Agency = () => {
                         marginBottom: '8px',
                         fontWeight: '500'
                     }}>
-                        Descripción
+                        Description
                     </label>
                     <textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="Describe el objetivo del challenge..."
+                        placeholder="Describe the challenge objective..."
                         required
                         style={{
                             width: '100%',
@@ -175,7 +169,6 @@ const Agency = () => {
                     />
                 </div>
 
-                {/* Images */}
                 <div>
                     <label style={{
                         display: 'block',
@@ -183,7 +176,7 @@ const Agency = () => {
                         marginBottom: '8px',
                         fontWeight: '500'
                     }}>
-                        URLs de Imágenes
+                        Image URLs
                     </label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         {imageUrls.map((url, index) => (
@@ -192,7 +185,7 @@ const Agency = () => {
                                     type="url"
                                     value={url}
                                     onChange={(e) => updateImageUrl(index, e.target.value)}
-                                    placeholder={`URL de imagen ${index + 1}`}
+                                    placeholder={`Image URL ${index + 1}`}
                                     style={{
                                         flex: 1,
                                         padding: '12px',
@@ -237,18 +230,17 @@ const Agency = () => {
                             fontSize: '14px'
                         }}
                     >
-                        + Añadir otra imagen
+                        + Add another image
                     </button>
                     <p style={{
                         fontSize: '12px',
                         color: 'var(--muted-foreground)',
                         marginTop: '8px'
                     }}>
-                        Puedes usar URLs de placeholder como: https://via.placeholder.com/4000x3000/8B4513/FFFFFF?text=Mars
+                        You can use placeholder URLs like: https://via.placeholder.com/4000x3000/8B4513/FFFFFF?text=Mars
                     </p>
                 </div>
 
-                {/* Submit */}
                 <button
                     type="submit"
                     disabled={creating}
@@ -266,11 +258,10 @@ const Agency = () => {
                         marginTop: '8px'
                     }}
                 >
-                    {creating ? 'Creando Challenge...' : '🚀 Crear Challenge'}
+                    {creating ? 'Creating Challenge...' : '🚀 Create Challenge'}
                 </button>
             </form>
 
-            {/* Info box */}
             <div style={{
                 marginTop: '24px',
                 padding: '20px',
@@ -281,12 +272,12 @@ const Agency = () => {
                 color: 'var(--muted-foreground)'
             }}>
                 <div style={{ fontWeight: '600', color: 'var(--primary)', marginBottom: '8px' }}>
-                    💡 Consejos
+                    💡 Tips
                 </div>
                 <ul style={{ marginLeft: '20px', lineHeight: '1.8' }}>
-                    <li>Usa imágenes de alta resolución para mejores anotaciones</li>
-                    <li>Describe claramente qué deben anotar los usuarios</li>
-                    <li>Puedes añadir múltiples imágenes relacionadas al challenge</li>
+                    <li>Use high-resolution images for better annotations</li>
+                    <li>Clearly describe what users should annotate</li>
+                    <li>You can add multiple related images to the challenge</li>
                 </ul>
             </div>
         </div>
