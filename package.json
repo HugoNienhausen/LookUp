@@ -8,15 +8,13 @@
     "backend"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev": "concurrently \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm run dev",
-    "dev:backend": "cd backend && python manage.py runserver",
-    "install:all": "npm install && cd frontend && npm install && cd ../backend && pip install -r requirements.txt",
+    "dev:backend": "cd backend && node server.js",
+    "install:all": "cd frontend && npm install && cd ../backend && pip install -r requirements.txt",
     "build:frontend": "cd frontend && npm run build",
-    "start:backend": "cd backend && python manage.py runserver",
-    "migrate": "cd backend && python manage.py migrate",
-    "makemigrations": "cd backend && python manage.py makemigrations"
-  },
+    "start:backend": "cd backend && node server.js",
+      },
   "devDependencies": {
     "concurrently": "^8.2.2"
   }
