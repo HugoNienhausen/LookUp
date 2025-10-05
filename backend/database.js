@@ -89,7 +89,7 @@ db.serialize(() => {
         FOREIGN KEY (validator_id) REFERENCES users(id)
     )`);
 
-    const roles = ['participant', 'agency', 'validator'];
+    const roles = ['explorer', 'agency', 'validator'];
     const stmt = db.prepare('INSERT OR IGNORE INTO roles (role_name) VALUES (?)');
 
     roles.forEach(role => {

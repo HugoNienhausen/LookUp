@@ -62,7 +62,7 @@ const verifyTokenAndRole = (allowedRoles) => {
 };
 
 app.post('/api/auth/register', async (req, res) => {
-    const { name, email, password, role = 'participant' } = req.body;
+    const { name, email, password, role = 'explorer' } = req.body;
 
     if (!name || !email || !password || !role) {
         return res.status(400).json({ error: "All fields are required" });
@@ -140,14 +140,14 @@ app.post('/api/auth/login', async (req, res) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
-                role: user.role || 'participant',
+                role: user.role || 'explorer',
                 score: user.total_score || 0
             }
         });
     });
 });
 
-app.post('/api/annotations', verifyTokenAndRole(['participant', 'validator', 'agency']), async (req, res) => {
+app.post('/api/annotations', verifyTokenAndRole(['explorer', 'validator', 'agency']), async (req, res) => {
     const user_id = req.user.userId;
     const { image_id, annotations, metadata } = req.body;
 
@@ -188,7 +188,7 @@ app.post('/api/annotations', verifyTokenAndRole(['participant', 'validator', 'ag
                         annotation_id: annotation_id 
                     });
                 }
-                if (annotationCount >= 20 && roleRow.role_name === 'participant') {
+                if (annotationCount >= 20 && roleRow.role_name === 'explorer') {
                     db.get('SELECT id FROM roles WHERE role_name = ?', ['validator'], (err, validatorRole) => {
                         if (err || !validatorRole) {
                             return res.status(201).json({ 
@@ -349,7 +349,7 @@ app.post('/api/contests', verifyTokenAndRole(['agency']), async (req, res) => {
     });
 });
 
-app.post('/api/contests/:id/join', verifyTokenAndRole(['participant']), async (req, res) => {
+app.post('/api/contests/:id/join', verifyTokenAndRole(['explorer']), async (req, res) => {
     const contest_id = req.params.id;
     const user_id = req.user.userId;
 
@@ -362,7 +362,7 @@ app.post('/api/contests/:id/join', verifyTokenAndRole(['participant']), async (r
     });
 });
 
-app.get('/api/contests/:id/images', verifyTokenAndRole(['participant', 'agency', 'validator']),  (req, res) => {
+app.get('/api/contests/:id/images', verifyTokenAndRole(['explorer', 'agency', 'validator']),  (req, res) => {
     const contest_id = req.params.id;
 
     const sql = 'SELECT id, dzi_url, metadata FROM images WHERE contest_id = ?';
@@ -380,7 +380,7 @@ app.get('/api/contests/:id/images', verifyTokenAndRole(['participant', 'agency',
     });
 });
 
-app.get('/api/users/me', verifyTokenAndRole(['participant', 'agency', 'validator']), async (req, res) => {
+app.get('/api/users/me', verifyTokenAndRole(['explorer', 'agency', 'validator']), async (req, res) => {
     const userId = req.user.userId;
 
     const sql = `
@@ -458,7 +458,7 @@ app.get('/api/contests/:id', async (req, res) => {
     });
 });
 
-app.get('/api/annotations', verifyTokenAndRole(['participant', 'agency', 'validator']), async (req, res) => {
+app.get('/api/annotations', verifyTokenAndRole(['explorer', 'agency', 'validator']), async (req, res) => {
     const { contest_id, status, user_id } = req.query;
     
     let sql = `
