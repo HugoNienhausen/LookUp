@@ -1,297 +1,161 @@
-# 🚀 Hackathon Monorepo
+# 🚀 LookUp - Scientific Image Annotation Platform
 
-Un monorepo completo con frontend React 18 + Vite + TypeScript y backend Django 5 + Django REST Framework.
+A fullstack web application for collaborative annotation of high-resolution scientific images. Users can participate in challenges by annotating Deep Zoom Images (DZI), validate others' work, and compete in a gamified point system.
 
-## 📁 Estructura del Proyecto
+## 🎯 Project Description
 
-```
-hackathon/
-├── frontend/          # React 18 + Vite + TypeScript
-│   ├── src/
-│   ├── package.json
-│   └── vite.config.ts
-├── backend/           # Django 5 + DRF
-│   ├── backend/
-│   ├── api/
-│   ├── manage.py
-│   └── requirements.txt
-├── package.json       # Workspace root
-└── README.md
-```
+LookUp enables scientific agencies to create image annotation challenges where explorers annotate high-resolution images using an interactive viewer. The platform includes:
 
-## 🚀 Inicio Rápido
+- **Role-based system**: Explorer, Validator, Agency
+- **Gamification**: Points and auto-promotion system
+- **OpenSeadragon integration**: For viewing and annotating gigapixel images
+- **JWT authentication**: Secure, token-based authentication
 
-### Prerrequisitos
+## 🚀 Local Deployment
 
-- Node.js 18+ y npm/yarn
-- Python 3.11+ y pip
-- Git
+### Prerequisites
+- Node.js 18+
+- npm
 
-### Instalación
+### Installation & Run
 
-1. **Clonar el repositorio:**
+1. **Clone and install:**
    ```bash
-   git clone <tu-repo>
-   cd hackathon
+   git clone <your-repo>
+   cd LookUp
+   
+   # Install backend dependencies
+   cd backend && npm install
+   
+   # Install frontend dependencies
+   cd ../integration && npm install
    ```
 
-2. **Instalar todas las dependencias:**
+2. **Start backend (port 3000):**
    ```bash
-   npm run install:all
+   cd backend
+   node server.js
    ```
 
-   O instalar por separado:
+3. **Start frontend (port 3001):**
    ```bash
-   # Instalar dependencias del workspace
-   npm install
-   
-   # Instalar dependencias del frontend
-   cd frontend && npm install
-   
-   # Instalar dependencias del backend
-   cd ../backend && pip install -r requirements.txt
+   cd integration
+   npm run dev
    ```
 
-3. **Configurar variables de entorno:**
-   
-   El proyecto incluye archivos `.env` de ejemplo. Puedes modificarlos según tus necesidades:
-   
-   - `frontend/.env` - Variables del frontend
-   - `backend/.env` - Variables del backend
+4. **Access the application:**
+   - Frontend: http://localhost:3001
+   - Backend API: http://localhost:3000/api/
 
-4. **Ejecutar migraciones de Django:**
-   ```bash
-   npm run migrate
-   ```
-
-### 🏃‍♂️ Ejecutar el Proyecto
-
-#### Opción 1: Ejecutar ambos servicios simultáneamente
-```bash
-npm run dev
-```
-
-#### Opción 2: Ejecutar servicios por separado
-
-**Frontend (puerto 5173):**
-```bash
-npm run dev:frontend
-# o
-cd frontend && npm run dev
-```
-
-**Backend (puerto 8000):**
-```bash
-npm run start:backend
-# o
-cd backend && python manage.py runserver
-```
-
-## 📋 Scripts Disponibles
-
-### Scripts del Workspace (raíz)
-- `npm run dev` - Ejecuta frontend y backend simultáneamente
-- `npm run dev:frontend` - Solo frontend
-- `npm run dev:backend` - Solo backend
-- `npm run install:all` - Instala todas las dependencias
-- `npm run build:frontend` - Construye el frontend para producción
-- `npm run migrate` - Ejecuta migraciones de Django
-- `npm run makemigrations` - Crea nuevas migraciones
-
-### Scripts del Frontend
-- `npm run dev` - Servidor de desarrollo Vite
-- `npm run build` - Construcción para producción
-- `npm run preview` - Vista previa de la construcción
-- `npm run lint` - Linter de ESLint
-
-## 🌐 URLs del Proyecto
-
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:8000/api/
-- **Admin Django:** http://localhost:8000/admin/
-
-## 🔧 Configuración
-
-### CORS
-El backend está configurado para permitir requests desde `localhost:5173`. La configuración se encuentra en `backend/backend/settings.py`.
-
-### Variables de Entorno
-
-#### Frontend (.env)
-```
-VITE_API_URL=http://localhost:8000
-```
-
-#### Backend (.env)
-```
-SECRET_KEY=django-insecure-change-me-in-production
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-```
-
-## 🛠️ Tecnologías Utilizadas
+## 🛠️ Technologies Used
 
 ### Frontend
-- **React 18** - Biblioteca de UI
-- **Vite** - Build tool y dev server
-- **TypeScript** - Tipado estático
-- **Axios** - Cliente HTTP
-- **OpenSeadragon** - Visor de imágenes de alta resolución
-- **ESLint** - Linter
+- **React 18** - UI library
+- **Vite** - Build tool and dev server
+- **React Router DOM 6** - Client-side routing
+- **Axios** - HTTP client with JWT interceptors
+- **OpenSeadragon 4.1** - Deep Zoom Image viewer
+- **React Icons** - Icon library
 
 ### Backend
-- **Django 5** - Framework web
-- **Django REST Framework** - API REST
-- **django-cors-headers** - Manejo de CORS
-- **python-decouple** - Manejo de variables de entorno
+- **Node.js + Express 5.1** - REST API server
+- **SQLite3 5.1.7** - Embedded relational database
+- **jsonwebtoken 9.0.2** - JWT authentication
+- **bcryptjs 3.0.2** - Password hashing
+- **CORS** - Cross-origin resource sharing
 
-## 📝 Desarrollo
+## 🏗️ Architecture
 
-### Agregar Nuevas Dependencias
-
-**Frontend:**
-```bash
-cd frontend
-npm install <paquete>
+```
+┌─────────────────────────────────────┐
+│   Frontend (React + Vite)          │
+│   Port 3001                         │
+│   - OpenSeadragon viewer            │
+│   - Canvas overlay for annotations  │
+│   - AuthContext + ToolboxContext    │
+└─────────────────┬───────────────────┘
+                  │ HTTP/REST + JWT
+                  │ Vite Proxy: /api → :3000
+┌─────────────────▼───────────────────┐
+│   Backend (Node.js + Express)      │
+│   Port 3000                         │
+│   - JWT middleware                  │
+│   - Role-based access control       │
+│   - Business logic & scoring        │
+└─────────────────┬───────────────────┘
+                  │ SQL
+┌─────────────────▼───────────────────┐
+│   Database (SQLite)                 │
+│   database.db                       │
+└─────────────────────────────────────┘
 ```
 
-**Backend:**
-```bash
-cd backend
-pip install <paquete>
-# Agregar a requirements.txt
-pip freeze > requirements.txt
+### Key Components
+- **Frontend**: Single Page Application with protected routes
+- **Backend**: RESTful API with JWT authentication
+- **Proxy**: Vite proxies `/api/*` to backend
+- **Auth**: JWT tokens stored in localStorage, auto-injected via Axios interceptors
+
+## 💾 Database Schema
+
+```sql
+users
+├── id (UUID, PK)
+├── name
+├── email (UNIQUE)
+├── password (bcrypt hashed)
+└── total_score
+
+roles
+├── id (PK)
+└── role_name (explorer, validator, agency)
+
+users_roles (many-to-many)
+├── user_id (FK → users)
+└── role_id (FK → roles)
+
+contests
+├── id (PK)
+├── agency_id (FK → users)
+├── name
+├── description
+├── rules
+└── end_date
+
+images
+├── id (PK)
+├── contest_id (FK → contests)
+├── dzi_url (URL to .dzi file)
+└── metadata (JSON)
+
+annotations
+├── id (PK)
+├── user_id (FK → users)
+├── image_id (FK → images)
+├── annotations_data (JSON array of shapes)
+├── metadata (JSON)
+├── status (pending, validated, rejected)
+└── created_at
+
+validations
+├── id (PK)
+├── annotation_id (FK → annotations)
+├── validator_id (FK → users)
+├── decision (approved, rejected)
+└── comment
+
+participant_contest (many-to-many)
+├── user_id (FK → users)
+├── contest_id (FK → contests)
+└── score
 ```
 
-### Crear Nuevas Migraciones
-
-```bash
-npm run makemigrations
-npm run migrate
-```
-
-## 🔍 DeepZoomViewer Component
-
-El proyecto incluye un componente `DeepZoomViewer` para visualizar imágenes de alta resolución:
-
-### Características
-- ✅ Visualización de imágenes DZI (Deep Zoom Images)
-- ✅ Controles de zoom, rotación y navegación
-- ✅ Responsive design (100% width, 70vh height)
-- ✅ ResizeObserver para manejo automático de redimensionamiento
-- ✅ TypeScript con tipado completo
-
-### Configuración de OpenSeadragon
-```bash
-# Instalar imágenes de control
-cd frontend
-./scripts/setup-openseadragon-images.sh
-```
-
-### Uso
-```tsx
-import DeepZoomViewer from './components/DeepZoomViewer';
-
-<DeepZoomViewer
-  dziUrl="https://example.com/image.dzi"
-  maxZoomPixelRatio={2}
-  showNavigator={true}
-  onReady={() => console.log('Visor listo!')}
-/>
-```
-
-## 🚀 Despliegue
-
-### Frontend
-```bash
-npm run build:frontend
-# Los archivos estáticos se generan en frontend/dist/
-```
-
-### Backend
-```bash
-cd backend
-python manage.py collectstatic
-python manage.py migrate
-# Configurar servidor web (nginx, gunicorn, etc.)
-```
-
-## 🤝 Contribución
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📄 Licencia
-
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+### Key Relationships
+- Users have one role (through users_roles)
+- Contests belong to agencies, contain multiple images
+- Annotations link users to images
+- Validations link validators to annotations
 
 ---
 
-¡Happy coding! 🎉
-```
-
-## 5. Scripts de configuración adicionales
-
-```json:/Users/hugonienhausen/Desktop/hackathon/frontend/.eslintrc.cjs
-module.exports = {
-  root: true,
-  env: { browser: true, es2020: true },
-  extends: [
-    'eslint:recommended',
-    '@typescript-eslint/recommended',
-    'plugin:react-hooks/recommended',
-  ],
-  ignorePatterns: ['dist', '.eslintrc.cjs'],
-  parser: '@typescript-eslint/parser',
-  plugins: ['react-refresh'],
-  rules: {
-    'react-refresh/only-export-components': [
-      'warn',
-      { allowConstantExport: true },
-    ],
-  },
-}
-```
-
-¡Listo! He creado un monorepo completo con:
-
-## ✅ **Características implementadas:**
-
-### **Frontend (React 18 + Vite + TypeScript)**
-- Configuración completa de Vite con TypeScript
-- React 18 con hooks modernos
-- Interfaz atractiva con gradientes y efectos glassmorphism
-- Integración con Axios para llamadas a la API
-- Variables de entorno configuradas
-- ESLint configurado
-
-### **Backend (Django 5 + DRF)**
-- Django 5 con Django REST Framework
-- Configuración de CORS para localhost:5173
-- Endpoints de ejemplo (`/api/` y `/api/info/`)
-- Manejo de variables de entorno con python-decouple
-- Configuración de idioma en español
-
-### **Scripts de npm/yarn**
-- `npm run dev` - Ejecuta ambos servicios simultáneamente
-- `npm run dev:frontend` - Solo frontend (puerto 5173)
-- `npm run dev:backend` - Solo backend (puerto 8000)
-- `npm run install:all` - Instala todas las dependencias
-- Scripts adicionales para migraciones y build
-
-### **Configuración adicional**
-- Archivos `.env` para ambas aplicaciones
-- `.gitignore` completo
-- README detallado con instrucciones
-- Estructura de monorepo con workspaces
-
-## 🚀 **Para empezar:**
-
-```bash
-# Ins
-```
-
-
+**License:** MIT
